@@ -412,6 +412,53 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        // Create additional role accounts
+        $principal = Teacher::create([
+            'name' => 'Bopha Chan',
+            'gender' => 'Female',
+            'dob' => '1978-05-10',
+            'phone' => '012999888',
+            'email' => 'bopha.chan@school.edu',
+            'address' => 'Phnom Penh',
+            'position' => 'Principal',
+            'department' => 'Administration',
+            'salary' => 2500,
+            'hire_date' => '2015-01-01',
+            'status' => 'active',
+        ]);
+
+        \App\Models\User::create([
+            'name' => $principal->name,
+            'email' => 'principal@school.edu',
+            'password' => 'principal123',
+            'role' => 'principal',
+            'teacher_id' => $principal->id,
+        ]);
+
+        \App\Models\User::create([
+            'name' => 'Chantrea Yin',
+            'email' => 'accountant@school.edu',
+            'password' => 'accountant123',
+            'role' => 'accountant',
+        ]);
+
+        \App\Models\User::create([
+            'name' => 'Dara Kem',
+            'email' => 'librarian@school.edu',
+            'password' => 'librarian123',
+            'role' => 'librarian',
+        ]);
+
+        \App\Models\User::create([
+            'name' => 'Sokhem Touch',
+            'email' => 'receptionist@school.edu',
+            'password' => 'receptionist123',
+            'role' => 'receptionist',
+        ]);
+
         $this->call(DashboardDemoSeeder::class);
+        $this->call(PermissionSeeder::class);
+        $this->call(SettingSeeder::class);
+        $this->call(ModuleDemoSeeder::class);
     }
 }

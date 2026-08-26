@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, Navigate, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, UserRound, GraduationCap, BookOpen, School, CalendarClock, ClipboardCheck, ClipboardList, CalendarOff, BarChart3, TriangleAlert, LogOut, UsersRound, KeyRound } from 'lucide-react';
+import { LayoutDashboard, Users, UserRound, GraduationCap, BookOpen, School, CalendarClock, ClipboardCheck, ClipboardList, CalendarOff, BarChart3, TriangleAlert, LogOut, UsersRound, KeyRound, FileText, Award, BookMarked, ClipboardList as ClipboardIcon, MessageSquare, CalendarDays, Bell, Settings, DollarSign, ShieldAlert, FolderOpen, History, Building2 } from 'lucide-react';
 import Login from './pages/Login';
 import Students from './pages/Students';
 import Teachers from './pages/Teachers';
@@ -16,21 +16,52 @@ import Reports from './pages/Reports';
 import Warnings from './pages/Warnings';
 import Dashboard from './pages/Dashboard';
 import ChangePassword from './pages/ChangePassword';
+import Exams from './pages/Exams';
+import Grades from './pages/Grades';
+import Fees from './pages/Fees';
+import Library from './pages/Library';
+import Homework from './pages/Homework';
+import Messages from './pages/Messages';
+import Events from './pages/Events';
+import Discipline from './pages/Discipline';
+import Awards from './pages/Awards';
+import Documents from './pages/Documents';
+import Notifications from './pages/Notifications';
+import SchoolSettings from './pages/SchoolSettings';
+import Payroll from './pages/Payroll';
+import UsersPage from './pages/Users';
+import SettingsPage from './pages/Settings';
+import LoginHistory from './pages/LoginHistory';
 
 const NAV = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true, roles: ['admin', 'teacher', 'student', 'class_president', 'parent'] },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true, roles: ['admin', 'teacher', 'student', 'class_president', 'parent', 'accountant', 'librarian', 'receptionist', 'staff'] },
   { to: '/students', label: 'Students', icon: GraduationCap, roles: ['admin', 'teacher'] },
   { to: '/teachers', label: 'Teachers', icon: UserRound, roles: ['admin'] },
-  // { to: '/staff', label: 'Staff', icon: Users, roles: ['admin'] },
   { to: '/parents', label: 'Parents', icon: UsersRound, roles: ['admin'] },
+  { to: '/users', label: 'User Management', icon: Users, roles: ['admin'] },
   { to: '/subjects', label: 'Courses', icon: BookOpen, roles: ['admin', 'teacher'] },
   { to: '/classes', label: 'Classes', icon: School, roles: ['admin', 'teacher'] },
   { to: '/schedules', label: 'Schedules', icon: CalendarClock, roles: ['admin', 'teacher'] },
   { to: '/mark-attendance', label: 'Mark Attendance', icon: ClipboardCheck, roles: ['admin', 'teacher'] },
   { to: '/attendances', label: 'Attendances', icon: ClipboardList, roles: ['admin', 'teacher'] },
-  // { to: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'teacher'] },
+  { to: '/exams', label: 'Exams', icon: FileText, roles: ['admin', 'teacher'] },
+  { to: '/grades', label: 'Grades & Results', icon: Award, roles: ['admin', 'teacher'] },
+  { to: '/homework', label: 'Homework', icon: ClipboardIcon, roles: ['admin', 'teacher'] },
+  { to: '/library', label: 'Library', icon: BookMarked, roles: ['admin', 'teacher', 'librarian'] },
+  { to: '/fees', label: 'Fees & Finance', icon: DollarSign, roles: ['admin', 'accountant'] },
+  { to: '/payroll', label: 'Payroll', icon: DollarSign, roles: ['admin', 'accountant'] },
+  { to: '/messages', label: 'Messages', icon: MessageSquare, roles: ['admin', 'teacher', 'student', 'class_president', 'parent', 'staff'] },
+  { to: '/events', label: 'Events', icon: CalendarDays, roles: ['admin', 'teacher'] },
+  { to: '/discipline', label: 'Discipline', icon: ShieldAlert, roles: ['admin', 'teacher'] },
+  { to: '/awards', label: 'Awards', icon: Award, roles: ['admin', 'teacher'] },
+  { to: '/documents', label: 'Documents', icon: FolderOpen, roles: ['admin', 'teacher', 'staff'] },
+  { to: '/notifications', label: 'Notifications', icon: Bell, roles: ['admin', 'teacher', 'student', 'class_president', 'parent', 'staff', 'accountant', 'librarian', 'receptionist'] },
+  { to: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin', 'teacher'] },
   { to: '/warnings', label: 'Warnings', icon: TriangleAlert, roles: ['admin', 'teacher'] },
   { to: '/leaves', label: 'Leaves', icon: CalendarOff, roles: ['admin', 'teacher', 'student', 'class_president', 'parent'] },
+  { to: '/school-settings', label: 'School Settings', icon: Building2, roles: ['admin'] },
+  { to: '/settings', label: 'System Settings', icon: Settings, roles: ['admin'] },
+  { to: '/login-history', label: 'Login History', icon: History, roles: ['admin'] },
   { to: '/account', label: 'My Account', icon: KeyRound, roles: ['admin', 'teacher', 'student', 'class_president', 'parent'] },
 ];
 
@@ -96,6 +127,7 @@ function AppLayout({ user, onLogout }) {
           <Route path="/teachers" element={<RequireRole user={user} roles={['admin']}><Teachers /></RequireRole>} />
           <Route path="/staff" element={<RequireRole user={user} roles={['admin']}><Staff /></RequireRole>} />
           <Route path="/parents" element={<RequireRole user={user} roles={['admin']}><Parents /></RequireRole>} />
+          <Route path="/users" element={<RequireRole user={user} roles={['admin']}><UsersPage /></RequireRole>} />
           <Route path="/subjects" element={<RequireRole user={user} roles={['admin', 'teacher']}><Subjects /></RequireRole>} />
           <Route path="/classes" element={<RequireRole user={user} roles={['admin', 'teacher']}><Classes /></RequireRole>} />
           <Route path="/schedules" element={<RequireRole user={user} roles={['admin', 'teacher']}><Schedules /></RequireRole>} />
@@ -103,6 +135,21 @@ function AppLayout({ user, onLogout }) {
           <Route path="/reports" element={<RequireRole user={user} roles={['admin', 'teacher']}><Reports /></RequireRole>} />
           <Route path="/warnings" element={<RequireRole user={user} roles={['admin', 'teacher']}><Warnings /></RequireRole>} />
           <Route path="/mark-attendance" element={<RequireRole user={user} roles={['admin', 'teacher']}><MarkAttendance /></RequireRole>} />
+          <Route path="/exams" element={<RequireRole user={user} roles={['admin', 'teacher']}><Exams /></RequireRole>} />
+          <Route path="/grades" element={<RequireRole user={user} roles={['admin', 'teacher']}><Grades /></RequireRole>} />
+          <Route path="/homework" element={<RequireRole user={user} roles={['admin', 'teacher']}><Homework /></RequireRole>} />
+          <Route path="/library" element={<RequireRole user={user} roles={['admin', 'teacher', 'librarian']}><Library /></RequireRole>} />
+          <Route path="/fees" element={<RequireRole user={user} roles={['admin', 'accountant']}><Fees /></RequireRole>} />
+          <Route path="/payroll" element={<RequireRole user={user} roles={['admin', 'accountant']}><Payroll /></RequireRole>} />
+          <Route path="/messages" element={<RequireRole user={user} roles={['admin', 'teacher', 'student', 'class_president', 'parent', 'staff']}><Messages /></RequireRole>} />
+          <Route path="/events" element={<RequireRole user={user} roles={['admin', 'teacher']}><Events /></RequireRole>} />
+          <Route path="/discipline" element={<RequireRole user={user} roles={['admin', 'teacher']}><Discipline /></RequireRole>} />
+          <Route path="/awards" element={<RequireRole user={user} roles={['admin', 'teacher']}><Awards /></RequireRole>} />
+          <Route path="/documents" element={<RequireRole user={user} roles={['admin', 'teacher', 'staff']}><Documents /></RequireRole>} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/school-settings" element={<RequireRole user={user} roles={['admin']}><SchoolSettings /></RequireRole>} />
+          <Route path="/settings" element={<RequireRole user={user} roles={['admin']}><SettingsPage /></RequireRole>} />
+          <Route path="/login-history" element={<RequireRole user={user} roles={['admin']}><LoginHistory /></RequireRole>} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
