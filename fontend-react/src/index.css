@@ -1,1 +1,29 @@
 @import "tailwindcss";
+
+@theme {
+  /* Academic ledger palette (non-colliding token names) */
+  --color-paper: #FAF8F3;     /* page background */
+  --color-ink: #1E2A4A;       /* primary dark (headers, nav) */
+  --color-ochre: #D98E2B;     /* accent (amber in mock) */
+  --color-ledger-slate: #5A6B95; /* secondary text / lines */
+  --color-sage: #6E8F68;      /* positive */
+  --color-coral: #C25B45;     /* alert / negative */
+  --color-hairline: #E4E0D6;  /* borders */
+
+  --font-display: "Georgia", "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+/* Page container surfaces */
+.page-card {
+  @apply bg-white border border-hairline rounded-sm;
+}

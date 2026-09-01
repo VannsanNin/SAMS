@@ -10,14 +10,14 @@ export default function Pagination({ meta, onPageChange }) {
 
   return (
     <div className="flex items-center justify-between mt-6 text-sm">
-      <span className="text-gray-500">
+      <span className="text-ledger-slate">
         Showing {from}–{to} of {total}
       </span>
       <div className="flex gap-1">
         <button
           disabled={current_page === 1}
           onClick={() => onPageChange(current_page - 1)}
-          className="px-3 py-1.5 rounded border disabled:opacity-40 hover:bg-gray-100"
+          className="px-3 py-1.5 rounded-sm border border-hairline disabled:opacity-40 hover:bg-paper"
         >
           Prev
         </button>
@@ -25,10 +25,10 @@ export default function Pagination({ meta, onPageChange }) {
           <button
             key={p}
             onClick={() => onPageChange(p)}
-            className={`px-3 py-1.5 rounded border ${
+            className={`px-3 py-1.5 rounded-sm border ${
               p === current_page
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'hover:bg-gray-100'
+                ? 'bg-ink text-white border-ink'
+                : 'border-hairline hover:bg-paper'
             }`}
           >
             {p}
@@ -37,7 +37,7 @@ export default function Pagination({ meta, onPageChange }) {
         <button
           disabled={current_page === last_page}
           onClick={() => onPageChange(current_page + 1)}
-          className="px-3 py-1.5 rounded border disabled:opacity-40 hover:bg-gray-100"
+          className="px-3 py-1.5 rounded-sm border border-hairline disabled:opacity-40 hover:bg-paper"
         >
           Next
         </button>

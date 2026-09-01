@@ -91,12 +91,12 @@ function AppLayout({ user, onLogout }) {
   const roleLabel = user.role === 'class_president' ? 'Class President' : user.role;
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <aside className="w-64 bg-gray-900 text-white flex flex-col">
-        <div className="p-6 text-2xl font-bold border-b border-gray-700">SAMS</div>
-        <div className="px-6 py-3 border-b border-gray-700 text-sm text-gray-400">
+    <div className="flex h-screen bg-paper">
+      <aside className="w-64 bg-ink text-white flex flex-col">
+        <div className="p-6 text-2xl font-display font-bold border-b border-white/15">SAMS</div>
+        <div className="px-6 py-3 border-b border-white/15 text-sm text-white/60">
           {user.name}
-          <span className="ml-2 px-2 py-0.5 rounded bg-gray-700 text-xs capitalize">{roleLabel}</span>
+          <span className="ml-2 px-2 py-0.5 rounded bg-ochre text-ink text-xs font-semibold capitalize">{roleLabel}</span>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {menu.map(({ to, label, icon: Icon, end }) => (
@@ -104,15 +104,15 @@ function AppLayout({ user, onLogout }) {
               key={to}
               to={to}
               end={end}
-              className={({ isActive }) => `flex items-center gap-3 px-4 py-2 rounded ${isActive ? 'bg-blue-700 font-semibold' : 'hover:bg-gray-700'}`}
+              className={({ isActive }) => `flex items-center gap-3 px-4 py-2 rounded-sm ${isActive ? 'bg-ochre text-ink font-semibold' : 'hover:bg-white/10'}`}
             >
               <Icon size={18} />
               {label}
             </NavLink>
           ))}
         </nav>
-        <div className="p-4 border-t border-gray-700">
-          <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded transition">
+        <div className="p-4 border-t border-white/15">
+          <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-2 text-sm text-white/60 hover:text-white hover:bg-white/10 rounded-sm transition">
             <LogOut size={18} />
             Logout
           </button>
@@ -120,7 +120,7 @@ function AppLayout({ user, onLogout }) {
       </aside>
       <main className="flex-1 overflow-y-auto p-8">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Dashboard role={user.role} />} />
           <Route path="/account" element={<ChangePassword />} />
           <Route path="/leaves" element={<Leaves />} />
           <Route path="/students" element={<RequireRole user={user} roles={['admin', 'teacher']}><Students /></RequireRole>} />

@@ -3,14 +3,24 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Announcement;
 use App\Models\Attendance;
+use App\Models\Event;
+use App\Models\Exam;
+use App\Models\ExamMark;
+use App\Models\FeeInvoice;
+use App\Models\FeePayment;
+use App\Models\Homework;
+use App\Models\HomeworkSubmission;
 use App\Models\Leave;
+use App\Models\Message;
 use App\Models\Schedule;
 use App\Models\SchoolClass;
 use App\Models\Staff;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Teacher;
+use App\Models\Department;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,10 +33,24 @@ class DashboardController extends Controller
         $now = Carbon::now();
         $today = $now->toDateString();
 
-        if ($user && ($user->isParent() || $user->isStudent())) {
+        // Admins / principals share the full analytics dashboard
+        if ($user && ($user->isAdmin() || $user->isPrincipal())) {
+            return $this->adminDashboard($today);
+        }
+
+        if ($user && $user->isTeacher()) {
+            return $this->teacherDashboard($user, $today);
+        }
+
+        if ($user && $user->isStudent()) {
+            return $this->studentDashboard($user, $today);
+        }
+
+        if ($user && $user->isParent()) {
             return $this->personalDashboard($user, $today);
         }
 
+        // Fallback: staff-like / generic
         $weekday = $now->format('l');
 
         return [
@@ -47,6 +71,508 @@ class DashboardController extends Controller
             'events_today' => [],
             'recent' => $this->recentRecords(),
             'reports' => $this->reports(),
+        ];
+    }
+
+    // ------------------------------------------------------------------
+    // Admin dashboard
+    // ------------------------------------------------------------------
+    private function adminDashboard(string $today): array
+    {
+        $now = Carbon::now();
+        $monthStart = $now->copy()->startOfMonth();
+        $yearStart = $now->copy()->startOfYear();
+
+        // KPIs
+        $totalStudents = Student::count();
+        $totalTeachers = Teacher::count();
+        $totalStaff = Staff::count();
+        $totalClasses = SchoolClass::count();
+
+        $attendanceToday = Attendance::where('status', '!=', 'late')
+            ->whereDate('date', $today)->count();
+        $totalExpectedToday = Student::count();
+        $attendanceRateToday = self::rate($attendanceToday, $totalExpectedToday);
+
+        $feeCollectedMonth = (float) FeePayment::whereBetween('payment_date', [$monthStart, $now])->sum('amount');
+        $feeTargetMonth = (float) FeeInvoice::whereYear('created_at', $now->year)->sum('amount');
+
+        $pendingApplications = \App\Models\ScholarshipApplication::where('status', 'pending')->count();
+
+        // Enrollment trend: count students by month for the last 12 months
+        $enrollmentTrend = collect(range(11, 0))->map(function ($i) use ($now) {
+            $month = $now->copy()->subMonths($i);
+            $count = Student::whereYear('created_at', $month->year)
+                ->whereMonth('created_at', $month->month)->count();
+            return [
+                'label' => $month->format('M'),
+                'enrollments' => $count,
+            ];
+        })->values();
+
+        // Attendance rate trend across the last 6 weeks
+        $attendanceTrend = collect(range(5, 0))->map(function ($i) use ($now) {
+            $weekStart = $now->copy()->copy()->startOfWeek()->subWeeks($i);
+            $weekEnd = $weekStart->copy()->addDays(6);
+            $present = Attendance::where('status', '!=', 'late')
+                ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+                ->distinct('student_id')->count('student_id');
+            $expected = Student::count();
+            return [
+                'label' => 'W' . (6 - $i),
+                'rate' => self::rate($present, $expected),
+            ];
+        })->values();
+
+        // Fee collection vs target by month
+        $feeCollection = collect(range(5, 0))->map(function ($i) use ($now) {
+            $month = $now->copy()->subMonths($i);
+            $collected = (float) FeePayment::whereYear('payment_date', $month->year)
+                ->whereMonth('payment_date', $month->month)->sum('amount');
+            $invoiced = (float) FeeInvoice::whereYear('created_at', $month->year)
+                ->whereMonth('created_at', $month->month)->sum('amount');
+            return [
+                'label' => $month->format('M'),
+                'collected' => round($collected, 2),
+                'target' => round(max($invoiced, $collected), 2),
+            ];
+        })->values();
+
+        // Students by class
+        $studentsByClass = SchoolClass::withCount('students')->get()
+            ->map(fn ($c) => ['label' => $c->class_name, 'value' => $c->students_count]);
+
+        // Gender ratio
+        $genderRatio = [
+            ['label' => 'Male', 'value' => Student::where('gender', 'male')->count()],
+            ['label' => 'Female', 'value' => Student::where('gender', 'female')->count()],
+        ];
+
+        // Teacher:student ratio by department
+        $departments = Department::all();
+        $teacherStudentByDept = $departments->map(function ($d) {
+            return [
+                'label' => $d->name,
+                'teachers' => Teacher::where('department', $d->name)->count(),
+                'students' => Student::where('department', $d->name)->count(),
+            ];
+        });
+
+        // Lists
+        $recentAdmissions = Student::orderBy('created_at', 'desc')->take(8)
+            ->get(['id', 'name', 'student_id', 'class_id', 'created_at'])
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'student_id' => $s->student_id,
+                'class' => $s->class?->class_name,
+                'date' => $s->created_at->format('Y-m-d'),
+            ]);
+
+        $upcomingEvents = Event::where('is_active', true)
+            ->whereDate('start_date', '>=', $today)
+            ->orderBy('start_date')->take(6)
+            ->get(['id', 'title', 'type', 'start_date', 'location'])
+            ->map(fn ($e) => [
+                'id' => $e->id,
+                'title' => $e->title,
+                'type' => $e->type,
+                'date' => $e->start_date->format('Y-m-d'),
+                'location' => $e->location,
+            ]);
+
+        $lowAttendance = Attendance::whereDate('date', '>=', $now->copy()->subDays(30))
+            ->where('status', 'absent')
+            ->groupBy('student_id')
+            ->select('student_id', DB::raw('COUNT(*) as absences'))
+            ->orderByDesc('absences')->take(6)
+            ->with('student:id,name,class_id')
+            ->get()
+            ->map(fn ($a) => [
+                'id' => $a->student?->id,
+                'name' => $a->student?->name,
+                'class' => $a->student?->class?->class_name,
+                'absences' => $a->absences,
+            ]);
+
+        $overdueFees = FeeInvoice::where('balance', '>', 0)
+            ->whereDate('due_date', '<', $today)
+            ->orderBy('due_date')->take(8)
+            ->with('student:id,name,student_id')
+            ->get()
+            ->map(fn ($i) => [
+                'id' => $i->id,
+                'invoice' => $i->invoice_number,
+                'student' => $i->student?->name,
+                'student_id' => $i->student?->student_id,
+                'balance' => (float) $i->balance,
+                'due_date' => $i->due_date->format('Y-m-d'),
+            ]);
+
+        $staffOnLeave = Leave::where('staff_id', '!=', null)
+            ->whereDate('date_from', '<=', $today)
+            ->whereDate('date_to', '>=', $today)
+            ->where('status', 'approved')
+            ->with('staff')
+            ->get()
+            ->map(fn ($l) => [
+                'id' => $l->id,
+                'name' => $l->staff?->name ?? 'Staff #' . $l->staff_id,
+                'date_from' => $l->date_from,
+                'date_to' => $l->date_to,
+            ]);
+
+        return [
+            'role' => 'admin',
+            'date' => $today,
+            'kpis' => [
+                ['label' => 'Total Students', 'value' => $totalStudents, 'icon' => 'users'],
+                ['label' => 'Total Teachers', 'value' => $totalTeachers, 'icon' => 'teachers'],
+                ['label' => 'Total Staff', 'value' => $totalStaff, 'icon' => 'staff'],
+                ['label' => 'Classes / Sections', 'value' => $totalClasses, 'icon' => 'classes'],
+                ['label' => 'Attendance Rate Today', 'value' => $attendanceRateToday, 'suffix' => '%', 'icon' => 'attendance'],
+                ['label' => 'Fees Collected (Month)', 'value' => round($feeCollectedMonth, 2), 'prefix' => '$', 'icon' => 'fees'],
+                ['label' => 'Fee Target (Month)', 'value' => round($feeTargetMonth, 2), 'prefix' => '$', 'icon' => 'target'],
+                ['label' => 'Pending Applications', 'value' => $pendingApplications, 'icon' => 'pending'],
+            ],
+            'graphs' => [
+                'enrollment_trend' => $enrollmentTrend,
+                'attendance_trend' => $attendanceTrend,
+                'fee_collection' => $feeCollection,
+                'students_by_class' => $studentsByClass,
+                'gender_ratio' => $genderRatio,
+                'teacher_student_by_dept' => $teacherStudentByDept,
+            ],
+            'lists' => [
+                'recent_admissions' => $recentAdmissions,
+                'upcoming_events' => $upcomingEvents,
+                'low_attendance' => $lowAttendance,
+                'overdue_fees' => $overdueFees,
+                'staff_on_leave' => $staffOnLeave,
+            ],
+        ];
+    }
+
+    // ------------------------------------------------------------------
+    // Teacher dashboard
+    // ------------------------------------------------------------------
+    private function teacherDashboard(\App\Models\User $user, string $today): array
+    {
+        $now = Carbon::now();
+        $weekday = $now->format('l');
+        $teacher = $user->teacher;
+
+        $classIds = $teacher
+            ? $teacher->classes()->pluck('id')->merge($teacher->assignedClasses()->pluck('classes.id'))
+            : collect();
+
+        $studentIds = collect();
+        if ($teacher) {
+            $studentIds = Student::whereIn('class_id', $classIds)->pluck('id');
+        }
+
+        $classesToday = Schedule::whereIn('class_id', $classIds)
+            ->where('day', $weekday)->count();
+
+        $totalStudents = $studentIds->unique()->count();
+
+        $pendingGrading = HomeworkSubmission::where('status', 'submitted')
+            ->whereIn('homework_id', Homework::whereIn('teacher_id', [$teacher?->id])->pluck('id'))
+            ->count();
+
+        $attendanceNotSubmitted = Schedule::whereIn('class_id', $classIds)
+            ->where('day', $weekday)
+            ->count();
+
+        $classIdsForSubject = $classIds;
+
+        // Class average performance by subject (bar)
+        $subjectPerformance = collect();
+        if ($teacher) {
+            $subjectIds = $teacher->subjects()->pluck('subjects.id')->merge(
+                Subject::whereIn('id', Schedule::whereIn('class_id', $classIds)->pluck('subject_id'))->pluck('id')
+            )->unique();
+            $subjectPerformance = $subjectIds->map(function ($sid) {
+                $avg = (float) ExamMark::whereHas('exam', fn ($q) => $q->where('subject_id', $sid))
+                    ->avg('marks_obtained') ?? 0;
+                return [
+                    'label' => Subject::find($sid)?->subject_name ?? 'Subject ' . $sid,
+                    'average' => round($avg, 2),
+                ];
+            });
+        }
+
+        // Attendance trend for my classes (last 6 weeks)
+        $attendanceTrend = collect(range(5, 0))->map(function ($i) use ($now, $studentIds) {
+            $weekStart = $now->copy()->startOfWeek()->subWeeks($i);
+            $weekEnd = $weekStart->copy()->addDays(6);
+            $present = Attendance::where('status', '!=', 'late')
+                ->whereIn('student_id', $studentIds)
+                ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+                ->distinct('student_id')->count('student_id');
+            return [
+                'label' => 'W' . (6 - $i),
+                'rate' => self::rate($present, $studentIds->unique()->count()),
+            ];
+        })->values();
+
+        // Grade distribution for latest exam (histogram)
+        $gradeDistribution = collect();
+        $latestExam = ExamMark::whereIn('student_id', $studentIds)
+            ->latest('id')->first();
+        if ($latestExam) {
+            $marks = ExamMark::where('exam_id', $latestExam->exam_id)->pluck('marks_obtained');
+            $gradeDistribution = collect([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])->map(function ($lo) use ($marks) {
+                $hi = $lo + 10;
+                $count = $marks->filter(fn ($m) => $m >= $lo && $m < $hi)->count();
+                return ['label' => $lo . '-' . ($hi - 1), 'count' => $count];
+            });
+        }
+
+        // Assignment submission rate (donut)
+        $homeworkIds = $teacher
+            ? Homework::where('teacher_id', $teacher->id)->pluck('id')
+            : collect();
+        $totalSubmissions = HomeworkSubmission::whereIn('homework_id', $homeworkIds)->count();
+        $submittedOnTime = HomeworkSubmission::whereIn('homework_id', $homeworkIds)
+            ->where('status', 'graded')->orWhere('status', 'submitted')->count();
+
+        // Lists
+        $todayTimetable = Schedule::whereIn('class_id', $classIds)
+            ->where('day', $weekday)
+            ->orderBy('time_start')
+            ->with(['subject', 'class'])
+            ->get()
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'class' => $s->class?->class_name,
+                'subject' => $s->subject?->subject_name,
+                'time_start' => $s->time_start,
+                'time_end' => $s->time_end,
+            ]);
+
+        $lowPerformingStudents = collect();
+        $recentSubmissions = HomeworkSubmission::whereIn('homework_id', $homeworkIds)
+            ->orderByDesc('submitted_at')->take(8)
+            ->with(['student:id,name', 'homework:id,title'])
+            ->get()
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'student' => $s->student?->name,
+                'homework' => $s->homework?->title,
+                'status' => $s->status,
+                'submitted_at' => optional($s->submitted_at)->format('Y-m-d H:i'),
+            ]);
+
+        $upcomingTests = Exam::whereIn('class_id', $classIds)
+            ->whereDate('date', '>=', $today)
+            ->orderBy('date')->take(6)
+            ->with(['subject', 'schoolClass'])
+            ->get()
+            ->map(fn ($e) => [
+                'id' => $e->id,
+                'name' => $e->name,
+                'subject' => $e->subject?->subject_name,
+                'class' => $e->schoolClass?->class_name,
+                'date' => $e->date->format('Y-m-d'),
+            ]);
+
+        $lowPerformingStudents = collect();
+        $recentMarks = ExamMark::whereIn('student_id', $studentIds)->get();
+        if ($recentMarks->count()) {
+            $bestExamPerStudent = $recentMarks->groupBy('student_id')->map(function ($marks) {
+                return $marks->sortByDesc('marks_obtained')->first();
+            });
+            $lowPerformingStudents = ExamMark::whereIn('id', $bestExamPerStudent->pluck('id'))
+                ->with(['student:id,name,class_id'])
+                ->get()
+                ->map(fn ($m) => [
+                    'id' => $m->student?->id,
+                    'name' => $m->student?->name,
+                    'class' => $m->student?->class?->class_name,
+                    'marks' => (float) $m->marks_obtained,
+                ])
+                ->sortBy('marks')->take(6)->values();
+        }
+
+        $messages = Message::where('recipient_id', $user->id)
+            ->orderByDesc('created_at')->take(6)->get();
+
+        return [
+            'role' => 'teacher',
+            'date' => $today,
+            'kpis' => [
+                ['label' => 'My Classes Today', 'value' => $classesToday, 'icon' => 'classes'],
+                ['label' => 'Students Supervised', 'value' => $totalStudents, 'icon' => 'users'],
+                ['label' => 'Assignments to Grade', 'value' => $pendingGrading, 'icon' => 'grading'],
+                ['label' => 'Attendance Not Submitted', 'value' => $attendanceNotSubmitted, 'icon' => 'attendance'],
+            ],
+            'graphs' => [
+                'subject_performance' => $subjectPerformance,
+                'attendance_trend' => $attendanceTrend,
+                'grade_distribution' => $gradeDistribution,
+                'submission_rate' => [
+                    ['label' => 'Submitted', 'value' => $submittedOnTime],
+                    ['label' => 'Pending', 'value' => max(0, $totalSubmissions - $submittedOnTime)],
+                ],
+            ],
+            'lists' => [
+                'today_timetable' => $todayTimetable,
+                'low_performing' => $lowPerformingStudents,
+                'recent_submissions' => $recentSubmissions,
+                'upcoming_tests' => $upcomingTests,
+                'messages' => $messages->map(fn ($m) => [
+                    'id' => $m->id,
+                    'subject' => $m->subject,
+                    'body' => $m->body,
+                    'date' => $m->created_at->format('Y-m-d H:i'),
+                    'is_read' => (bool) $m->is_read,
+                ]),
+            ],
+        ];
+    }
+
+    // ------------------------------------------------------------------
+    // Student dashboard
+    // ------------------------------------------------------------------
+    private function studentDashboard(\App\Models\User $user, string $today): array
+    {
+        $now = Carbon::now();
+        $weekday = $now->format('l');
+        $student = $user->student;
+
+        // KPIs
+        $attendance = collect();
+        $present = 0;
+        $attendanceRate = 0;
+        if ($student) {
+            $days = Attendance::where('student_id', $student->id)->get();
+            $present = $days->where('status', 'present')->count();
+            $late = $days->where('status', 'late')->count();
+            $absent = $days->where('status', 'absent')->count();
+            $attendanceRate = self::rate($present + $late, $days->count());
+            $attendance = [
+                ['label' => 'Present', 'value' => $present],
+                ['label' => 'Late', 'value' => $late],
+                ['label' => 'Absent', 'value' => $absent],
+            ];
+        }
+
+        $examMarks = $student
+            ? ExamMark::with('exam.subject')->where('student_id', $student->id)->get()
+            : collect();
+        $overallAverage = $examMarks->count()
+            ? round((float) $examMarks->avg('marks_obtained'), 2)
+            : 0;
+
+        $pendingAssignments = $student
+            ? Homework::whereIn('class_id', [$student->class_id])
+                ->where('due_date', '>=', $today)
+                ->whereDoesntHave('submissions', fn ($q) => $q->where('student_id', $student->id))
+                ->count()
+            : 0;
+
+        $feeDue = 0;
+        if ($student) {
+            $feeDue = (float) FeeInvoice::where('student_id', $student->id)
+                ->where('balance', '>', 0)->sum('balance');
+        }
+
+        // Graphs
+        $gradeTrend = $examMarks->groupBy(fn ($m) => optional($m->exam?->date)->format('Y-m'))->map(function ($group, $period) {
+            return ['label' => $period, 'average' => round((float) $group->avg('marks_obtained'), 2)];
+        })->values()->take(8);
+
+        $subjectWise = collect();
+        if ($student) {
+            $subjectWise = $examMarks->filter(fn ($m) => $m->exam && $m->exam->subject)
+                ->groupBy(fn ($m) => $m->exam->subject_id)
+                ->map(function ($group, $subjectId) {
+                    $subject = Subject::find($subjectId);
+                    return [
+                        'label' => $subject?->subject_name ?? 'Subject ' . $subjectId,
+                        'score' => round((float) $group->avg('marks_obtained'), 2),
+                    ];
+                })->values();
+        }
+
+        // Lists
+        $todayTimetable = $student
+            ? Schedule::where('class_id', $student->class_id)->where('day', $weekday)
+                ->orderBy('time_start')->with('subject')
+                ->get()->map(fn ($s) => [
+                    'id' => $s->id,
+                    'subject' => $s->subject?->subject_name,
+                    'time_start' => $s->time_start,
+                    'time_end' => $s->time_end,
+                ])
+            : collect();
+
+        $upcomingAssignments = $student
+            ? Homework::where('class_id', $student->class_id)
+                ->where('due_date', '>=', $today)->orderBy('due_date')->take(6)
+                ->with('subject')->get()
+                ->map(fn ($h) => [
+                    'id' => $h->id,
+                    'title' => $h->title,
+                    'subject' => $h->subject?->subject_name,
+                    'due_date' => $h->due_date->format('Y-m-d'),
+                    'status' => $h->submissions()->where('student_id', $student->id)->exists() ? 'submitted' : 'pending',
+                ])
+            : collect();
+
+        $upcomingExams = $student
+            ? Exam::where('class_id', $student->class_id)
+                ->whereDate('date', '>=', $today)->orderBy('date')->take(6)
+                ->with('subject')->get()
+                ->map(fn ($e) => [
+                    'id' => $e->id,
+                    'name' => $e->name,
+                    'subject' => $e->subject?->subject_name,
+                    'date' => $e->date->format('Y-m-d'),
+                ])
+            : collect();
+
+        $recentGrades = $examMarks->sortByDesc(fn ($m) => $m->updated_at)->take(6)
+            ->map(fn ($m) => [
+                'id' => $m->id,
+                'subject' => $m->exam?->subject?->subject_name ?? 'Exam',
+                'marks' => (float) $m->marks_obtained,
+                'date' => optional($m->exam?->date)->format('Y-m-d') ?? '—',
+            ])->values();
+
+        $announcements = Announcement::where('is_published', true)
+            ->whereDate('publish_date', '<=', $today)
+            ->orderByDesc('publish_date')->take(5)
+            ->get()
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'title' => $a->title,
+                'body' => $a->body,
+                'date' => $a->publish_date->format('Y-m-d'),
+            ]);
+
+        return [
+            'role' => 'student',
+            'date' => $today,
+            'kpis' => [
+                ['label' => 'Attendance %', 'value' => $attendanceRate, 'suffix' => '%', 'icon' => 'attendance'],
+                ['label' => 'Overall Average', 'value' => $overallAverage, 'icon' => 'average'],
+                ['label' => 'Pending Assignments', 'value' => $pendingAssignments, 'icon' => 'assignments'],
+                ['label' => 'Fee Due', 'value' => round($feeDue, 2), 'prefix' => '$', 'icon' => 'fees'],
+            ],
+            'graphs' => [
+                'grade_trend' => $gradeTrend,
+                'subject_wise' => $subjectWise,
+                'attendance_breakdown' => $attendance,
+            ],
+            'lists' => [
+                'today_timetable' => $todayTimetable,
+                'upcoming_assignments' => $upcomingAssignments,
+                'upcoming_exams' => $upcomingExams,
+                'recent_grades' => $recentGrades,
+                'announcements' => $announcements,
+            ],
         ];
     }
 

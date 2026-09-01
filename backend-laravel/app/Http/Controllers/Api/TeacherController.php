@@ -49,6 +49,43 @@ class TeacherController extends Controller
         return $this->show($teacher);
     }
 
+    public function summary(Request $request)
+    {
+        $teachers = $this->applyFilters(Teacher::query(), $request)
+            ->withCount('classes')
+            ->withCount('assignedClasses')
+            ->get();
+
+        $rows = $teachers->map(function ($t) {
+            return [
+                'id' => $t->id,
+                'teacher_id' => $t->teacher_id,
+                'name' => $t->name,
+                'dept' => $t->department,
+                'classes' => (int) $t->classes_count + (int) $t->assigned_classes_count,
+                'contact' => $t->phone,
+                'position' => $t->position,
+                'status' => $t->status,
+            ];
+        });
+
+        $total = $rows->count();
+        $deptCount = $rows->pluck('dept')->filter()->unique()->count();
+        $onLeave = $rows->whereIn('status', ['on_leave', 'inactive'])->count();
+        $avgClasses = $total > 0 ? round($rows->avg('classes'), 1) : 0;
+
+        $deptMap = $rows->where('dept')->groupBy('dept')->map->count();
+
+        return [
+            'teachers' => $rows->values(),
+            'total' => $total,
+            'departments' => $deptCount,
+            'on_leave' => $onLeave,
+            'avg_classes' => $avgClasses,
+            'department_distribution' => $deptMap->map(fn ($n, $d) => ['dept' => $d, 'count' => $n])->values(),
+        ];
+    }
+
     public function show(Teacher $teacher)
     {
         $teacher->load([

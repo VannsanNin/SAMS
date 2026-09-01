@@ -152,6 +152,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // ── Teachers ────────────────────────────────────────────────────────
         Route::get('teachers/filters', [TeacherController::class, 'filters']);
         Route::get('teachers/export', [TeacherController::class, 'export']);
+        Route::get('teachers/summary', [TeacherController::class, 'summary']);
         Route::post('teachers/import', [TeacherController::class, 'import']);
         Route::apiResource('teachers', TeacherController::class);
 
@@ -293,6 +294,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // ── Students (read) ─────────────────────────────────────────────────
         Route::get('students/filters', [StudentController::class, 'filters']);
         Route::get('students/export', [StudentController::class, 'export']);
+        Route::get('students/summary', [StudentController::class, 'summary']);
         Route::get('students', [StudentController::class, 'index']);
         Route::get('students/{student}', [StudentController::class, 'show']);
 

@@ -37,6 +37,63 @@ class StudentController extends Controller
         ];
     }
 
+    public function summary(Request $request)
+    {
+        $students = $this->applyFilters(Student::query(), $request)->with('class')->get();
+
+        $attendance = Attendance::whereIn('student_id', $students->pluck('id'))
+            ->selectRaw('student_id')
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('SUM(status IN ("present","late")) as present_late')
+            ->groupBy('student_id')
+            ->get()
+            ->keyBy('student_id');
+
+        $rows = $students->map(function ($s) use ($attendance) {
+            $agg = $attendance->get($s->id);
+            $total = (int) ($agg->total ?? 0);
+            $presentLate = (int) ($agg->present_late ?? 0);
+            $attendanceRate = $total > 0 ? (int) round($presentLate * 100 / $total) : 0;
+
+            $classParts = explode('-', (string) ($s->class?->class_name ?? ''));
+            return [
+                'id' => $s->id,
+                'student_id' => $s->student_id,
+                'name' => $s->name,
+                'grade' => $classParts[0] ?? '',
+                'section' => isset($classParts[1]) ? trim($classParts[1]) : '',
+                'class_name' => $s->class?->class_name ?? '',
+                'guardian' => $s->parent_name,
+                'contact' => $s->parent_phone,
+                'gender' => $s->gender,
+                'status' => $s->status,
+                'attendance' => $attendanceRate,
+            ];
+        });
+
+        $active = $rows->where('status', 'active')->count();
+        $avgAttendance = $rows->count() ? (int) round($rows->avg('attendance')) : 0;
+        $newThisMonth = Student::whereBetween('created_at', [now()->startOfMonth(), now()])->count();
+
+        $gender = $rows->map(fn ($s) => strtolower((string) $s['gender']));
+        $gradeMap = $rows->groupBy('grade')->map->count();
+
+        return [
+            'students' => $rows->values(),
+            'total' => $rows->count(),
+            'active' => $active,
+            'inactive' => $rows->where('status', '!=', 'active')->count(),
+            'new_this_month' => $newThisMonth,
+            'avg_attendance' => $avgAttendance,
+            'grade_distribution' => $gradeMap->map(fn ($n, $g) => ['grade' => $g, 'students' => $n])->values(),
+            'gender_ratio' => [
+                ['name' => 'Female', 'value' => $gender->filter(fn ($g) => $g === 'female' || $g === 'f')->count()],
+                ['name' => 'Male', 'value' => $gender->filter(fn ($g) => $g === 'male' || $g === 'm')->count()],
+                ['name' => 'Other', 'value' => $rows->count() - $gender->filter(fn ($g) => in_array($g, ['male', 'female', 'm', 'f']))->count()],
+            ],
+        ];
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate($this->rules());
