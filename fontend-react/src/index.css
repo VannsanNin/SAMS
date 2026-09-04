@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-display: "Plus Jakarta Sans", "Inter", sans-serif;
@@ -35,6 +37,12 @@
     color: #0f172a;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .dark body {
+    background-color: #090d16;
+    color: #f8fafc;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -58,10 +66,26 @@
   transform: translateY(-1px);
 }
 
+.dark .impeccable-card {
+  background-color: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.dark .impeccable-card:hover {
+  border-color: #334155;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+}
+
 .impeccable-glass {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.dark .impeccable-glass {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .impeccable-badge {
@@ -93,6 +117,97 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Global Dark Mode Text & Contrast Fallbacks */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #f8fafc;
+}
+
+.dark th {
+  color: #94a3b8;
+}
+
+.dark td {
+  color: #e2e8f0;
+}
+
+.dark .text-slate-900 {
+  color: #f8fafc;
+}
+
+.dark .text-slate-800 {
+  color: #f1f5f9;
+}
+
+.dark .text-slate-700 {
+  color: #cbd5e1;
+}
+
+.dark .text-slate-600 {
+  color: #94a3b8;
+}
+
+.dark .text-slate-500 {
+  color: #94a3b8;
+}
+
+.dark .bg-white {
+  background-color: #0f172a;
+}
+
+.dark .bg-slate-50,
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50\/60,
+.dark .bg-slate-50\/70,
+.dark .bg-slate-50\/80,
+.dark .bg-slate-50\/40 {
+  background-color: #162032;
+}
+
+.dark .hover\:bg-white:hover {
+  background-color: #1e293b;
+}
+
+.dark .hover\:bg-slate-50\/70:hover,
+.dark .hover\:bg-slate-50\/60:hover,
+.dark .hover\:bg-slate-50\/80:hover,
+.dark .hover\:bg-slate-50:hover {
+  background-color: #1e293b;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-200\/80,
+.dark .border-slate-200\/60 {
+  border-color: #1e293b;
+}
+
+.dark .divide-slate-100 > * + *,
+.dark .divide-slate-200 > * + * {
+  border-color: #1e293b;
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark select,
+.dark textarea {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border-color: #334155;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
+}
+
 /* Khmer text needs a script-capable fallback on school devices. */
 html[lang="km"], html[lang="km"] body {
   font-family: "Noto Sans Khmer", "Khmer OS Siemreap", "Khmer OS", system-ui, sans-serif;

@@ -8,6 +8,7 @@ const labels = {
   'System Settings': 'ការកំណត់ប្រព័ន្ធ', 'Login History': 'ប្រវត្តិចូលប្រើ', 'My Account': 'គណនីរបស់ខ្ញុំ',
   Logout: 'ចាកចេញ', Language: 'ភាសា', Khmer: 'ខ្មែរ', English: 'English',
   'Academic Management Center': 'មជ្ឈមណ្ឌលគ្រប់គ្រងការសិក្សា', Role: 'តួនាទី',
+  Theme: 'ប្រធានបទ', Light: 'ពន្លឺ', Dark: 'ងងឹត', System: 'ប្រព័ន្ធ',
 };
 
 export function getLanguage() {

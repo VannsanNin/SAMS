@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, Navigate, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, UserRound, GraduationCap, BookOpen, School, CalendarClock, ClipboardCheck, ClipboardList, CalendarOff, BarChart3, TriangleAlert, LogOut, UsersRound, KeyRound, FileText, Award, BookMarked, ClipboardList as ClipboardIcon, MessageSquare, CalendarDays, Bell, Settings, DollarSign, ShieldAlert, FolderOpen, History, Building2 } from 'lucide-react';
+import { LayoutDashboard, Users, UserRound, GraduationCap, BookOpen, School, CalendarClock, ClipboardCheck, ClipboardList, CalendarOff, BarChart3, TriangleAlert, LogOut, UsersRound, KeyRound, FileText, Award, BookMarked, ClipboardList as ClipboardIcon, MessageSquare, CalendarDays, Bell, Settings, DollarSign, ShieldAlert, FolderOpen, History, Building2, Wallet } from 'lucide-react';
 import Login from './pages/Login';
 import Students from './pages/Students';
 import Teachers from './pages/Teachers';
@@ -32,7 +32,10 @@ import Payroll from './pages/Payroll';
 import UsersPage from './pages/Users';
 import SettingsPage from './pages/Settings';
 import LoginHistory from './pages/LoginHistory';
+import MyFees from './pages/MyFees';
 import { getLanguage, setLanguage, translateLabel } from './i18n';
+import { ThemeProvider } from './context/ThemeContext';
+import ThemeToggle from './components/ThemeToggle';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true, roles: ['admin', 'teacher', 'student', 'class_president', 'parent', 'accountant', 'librarian', 'receptionist', 'staff'] },
@@ -50,6 +53,7 @@ const NAV = [
   { to: '/homework', label: 'Homework', icon: ClipboardIcon, roles: ['admin', 'teacher'] },
   { to: '/library', label: 'Library', icon: BookMarked, roles: ['admin', 'teacher', 'librarian'] },
   { to: '/fees', label: 'Fees & Finance', icon: DollarSign, roles: ['admin', 'accountant'] },
+  { to: '/my-fees', label: 'My Fees', icon: Wallet, roles: ['student', 'class_president', 'parent'] },
   { to: '/payroll', label: 'Payroll', icon: DollarSign, roles: ['admin', 'accountant'] },
   { to: '/messages', label: 'Messages', icon: MessageSquare, roles: ['admin', 'teacher', 'student', 'class_president', 'parent', 'staff'] },
   { to: '/events', label: 'Events', icon: CalendarDays, roles: ['admin', 'teacher'] },
@@ -93,7 +97,7 @@ function AppLayout({ user, onLogout }) {
   const roleLabel = user.role === 'class_president' ? 'Class President' : user.role;
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 transition-colors duration-150">
       {/* Impeccable Dark Sidebar */}
       <aside className="w-64 bg-slate-900 border-r border-slate-800 text-white flex flex-col shadow-xl z-20">
         {/* Brand Header */}
@@ -165,33 +169,34 @@ function AppLayout({ user, onLogout }) {
       {/* Main Content Surface */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header Navigation Bar */}
-        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between shrink-0 z-10">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <span className="font-semibold text-slate-900 font-display">{translateLabel('Academic Management Center', language)}</span>
+        <header className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-8 flex items-center justify-between shrink-0 z-10">
+          <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+            <span className="font-semibold text-slate-900 dark:text-slate-100 font-display">{translateLabel('Academic Management Center', language)}</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
             <NavLink
               to="/notifications"
-              className="relative p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition"
+              className="relative p-2 rounded-xl text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition"
               title="Notifications"
             >
               <Bell size={19} />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-600" />
             </NavLink>
-            <div className="h-4 w-[1px] bg-slate-200" />
-            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+            <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800" />
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
               <span>{translateLabel('Language', language)}:</span>
-              <button onClick={() => { const next = setLanguage(language === 'en' ? 'km' : 'en'); document.documentElement.lang = next; setLanguageState(next); }} className="font-bold text-indigo-600 hover:text-indigo-800">
+              <button onClick={() => { const next = setLanguage(language === 'en' ? 'km' : 'en'); document.documentElement.lang = next; setLanguageState(next); }} className="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300">
                 {translateLabel(language === 'en' ? 'Khmer' : 'English', language)}
               </button>
-              <span className="h-4 w-px bg-slate-200" />
-              <span>{translateLabel('Role', language)}: <span className="font-bold text-slate-800 uppercase tracking-wide">{user.role}</span></span>
+              <span className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
+              <span>{translateLabel('Role', language)}: <span className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">{user.role}</span></span>
             </div>
           </div>
         </header>
 
         {/* Page Content Viewport */}
-        <main className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
+        <main className="flex-1 overflow-y-auto p-8 bg-slate-50/50 dark:bg-slate-950 transition-colors duration-150">
           <Routes>
             <Route path="/" element={<Dashboard role={user.role} />} />
             <Route path="/account" element={<ChangePassword />} />
@@ -213,6 +218,7 @@ function AppLayout({ user, onLogout }) {
             <Route path="/homework" element={<RequireRole user={user} roles={['admin', 'teacher']}><Homework /></RequireRole>} />
             <Route path="/library" element={<RequireRole user={user} roles={['admin', 'teacher', 'librarian']}><Library /></RequireRole>} />
             <Route path="/fees" element={<RequireRole user={user} roles={['admin', 'accountant']}><Fees /></RequireRole>} />
+          <Route path="/my-fees" element={<RequireRole user={user} roles={['student', 'class_president', 'parent']}><MyFees /></RequireRole>} />
             <Route path="/payroll" element={<RequireRole user={user} roles={['admin', 'accountant']}><Payroll /></RequireRole>} />
             <Route path="/messages" element={<RequireRole user={user} roles={['admin', 'teacher', 'student', 'class_president', 'parent', 'staff']}><Messages /></RequireRole>} />
             <Route path="/events" element={<RequireRole user={user} roles={['admin', 'teacher']}><Events /></RequireRole>} />
@@ -237,19 +243,17 @@ export default function App() {
     return stored ? JSON.parse(stored) : null;
   });
 
-  if (!user) {
-    return (
-      <Router>
-        <Routes>
-          <Route path="*" element={<Login onLogin={(u) => setUser(u)} />} />
-        </Routes>
-      </Router>
-    );
-  }
-
   return (
-    <Router>
-      <AppLayout user={user} onLogout={() => setUser(null)} />
-    </Router>
+    <ThemeProvider>
+      <Router>
+        {!user ? (
+          <Routes>
+            <Route path="*" element={<Login onLogin={(u) => setUser(u)} />} />
+          </Routes>
+        ) : (
+          <AppLayout user={user} onLogout={() => setUser(null)} />
+        )}
+      </Router>
+    </ThemeProvider>
   );
 }

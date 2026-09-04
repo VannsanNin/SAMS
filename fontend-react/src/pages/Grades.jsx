@@ -42,7 +42,7 @@ export default function Grades() {
               <XAxis dataKey="grade" tick={{ fontSize: 12, fill: COLORS.slate }} axisLine={{ stroke: COLORS.hairline }} tickLine={false} />
               <YAxis tick={{ fontSize: 12, fill: COLORS.slate }} axisLine={false} tickLine={false} width={32} />
               <Tooltip />
-              <Bar dataKey="count" fill={COLORS.ink} radius={[3, 3, 0, 0]} />
+              <Bar dataKey="count" fill={COLORS.indigo} radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Panel>

@@ -334,4 +334,72 @@ class FeeController extends Controller
             ],
         ]);
     }
+
+    public function studentPay(Request $request)
+    {
+        $user = $request->user();
+        abort_unless($user && $user->isStudent() && $user->student_id, 403);
+        $student = Student::findOrFail($user->student_id);
+
+        $data = $request->validate([
+            'invoice_id' => 'required|exists:fee_invoices,id',
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|in:cash,bank_transfer,online,check,mobile',
+            'payment_date' => 'required|date',
+            'transaction_reference' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $payment = DB::transaction(function () use ($data, $student, $request) {
+            $invoice = FeeInvoice::whereKey($data['invoice_id'])->lockForUpdate()->firstOrFail();
+
+            abort_unless($invoice->student_id === $student->id, 403, 'You can only pay your own invoices.');
+
+            $remaining = max(0, (float) $invoice->amount - (float) $invoice->discount - (float) $invoice->paid_amount);
+
+            if ($remaining <= 0 || $invoice->status === 'paid') {
+                abort(422, 'This invoice is already fully paid.');
+            }
+
+            if ((float) $data['amount'] > $remaining) {
+                abort(422, 'Payment cannot exceed the invoice balance.');
+            }
+
+            $payment = FeePayment::create([
+                'invoice_id' => $invoice->id,
+                'student_id' => $student->id,
+                'amount' => $data['amount'],
+                'payment_method' => $data['payment_method'],
+                'transaction_reference' => $data['transaction_reference'] ?? null,
+                'payment_date' => $data['payment_date'],
+                'notes' => $data['notes'] ?? null,
+                'received_by' => $request->user()->id,
+            ]);
+
+            $invoice->paid_amount = (float) $invoice->paid_amount + (float) $data['amount'];
+            $invoice->balance = max(0, (float) $invoice->amount - (float) $invoice->discount - (float) $invoice->paid_amount);
+            $invoice->status = $invoice->balance <= 0 ? 'paid' : 'partial';
+            $invoice->save();
+
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'action' => 'fee_payment_recorded',
+                'subject_type' => FeePayment::class,
+                'subject_id' => $payment->id,
+                'properties' => [
+                    'invoice_id' => $invoice->id,
+                    'amount' => $data['amount'],
+                    'payment_method' => $data['payment_method'],
+                    'balance_after' => $invoice->balance,
+                    'source' => 'student_self_service',
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return $payment->load(['invoice.feeStructure', 'student.class']);
+        });
+
+        return response()->json($payment, 201);
+    }
 }

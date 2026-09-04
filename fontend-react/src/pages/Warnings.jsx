@@ -80,7 +80,7 @@ function StudentDetailModal({ student, onClose }) {
       <div className="mb-4 rounded-lg bg-blue-50 px-4 py-3 flex items-center justify-between">
         <div>
           <p className="font-bold text-blue-900">{student.student?.name}</p>
-          <p className="text-sm text-blue-700">{student.student?.class} \u00b7 {student.student?.code}</p>
+          <p className="text-sm text-blue-700">{student.student?.class} · {student.student?.code}</p>
         </div>
         <div className="text-right">
           <p className="text-3xl font-bold text-blue-700">{student.summary?.attendance_rate}%</p>
@@ -265,7 +265,7 @@ export default function Warnings() {
                     <p className={`text-sm font-semibold ${item.level === 'critical' ? 'text-red-900' : 'text-amber-900'}`}>
                       <span className="font-bold">{item.student_code ?? `#${item.student_id}`}</span> has <b>{item.rate}%</b> attendance in <b>{item.course}</b>
                     </p>
-                    <p className="text-xs text-gray-600 mt-0.5">{item.student_name} \u00b7 {item.class}</p>
+                    <p className="text-xs text-gray-600 mt-0.5">{item.student_name} · {item.class}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">

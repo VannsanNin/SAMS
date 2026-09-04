@@ -27,14 +27,14 @@ function StatCard({ item }) {
   return (
     <div className="impeccable-card p-5 flex flex-col justify-between group">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{item.label}</span>
-        <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 group-hover:scale-105 transition-transform duration-200">
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{item.label}</span>
+        <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/60 group-hover:scale-105 transition-transform duration-200">
           <Icon size={19} />
         </div>
       </div>
       <div className="mt-4">
-        <p className="text-3xl font-display font-bold text-slate-900 tracking-tight truncate">{value}</p>
-        <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-emerald-600">
+        <p className="text-3xl font-display font-bold text-slate-900 dark:text-white tracking-tight truncate">{value}</p>
+        <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
           <ArrowUpRight size={14} />
           <span>Active status</span>
         </div>
@@ -47,8 +47,8 @@ function ChartCard({ title, subtitle, children, className = '' }) {
   return (
     <section className={`impeccable-card p-6 ${className}`}>
       <div className="mb-4">
-        <h2 className="text-base font-display font-bold text-slate-900">{title}</h2>
-        {subtitle && <p className="text-xs text-slate-500 font-medium mt-0.5">{subtitle}</p>}
+        <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">{title}</h2>
+        {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{subtitle}</p>}
       </div>
       {children}
     </section>
@@ -59,8 +59,8 @@ function ListCard({ title, subtitle = '', children }) {
   return (
     <section className="impeccable-card p-6">
       <div className="mb-4">
-        <h2 className="text-base font-display font-bold text-slate-900">{title}</h2>
-        {subtitle && <p className="text-xs text-slate-500 font-medium mt-0.5">{subtitle}</p>}
+        <h2 className="text-base font-display font-bold text-slate-900 dark:text-white">{title}</h2>
+        {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{subtitle}</p>}
       </div>
       {children}
     </section>
@@ -70,10 +70,10 @@ function ListCard({ title, subtitle = '', children }) {
 const tooltipStyle = {
   backgroundColor: '#0F172A',
   borderRadius: '0.75rem',
-  border: 'none',
+  border: '1px solid #1E293B',
   color: '#F8FAFC',
   fontSize: '12px',
-  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2)',
+  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.4)',
 };
 
 function EnrollmentChart({ data }) {
@@ -82,9 +82,9 @@ function EnrollmentChart({ data }) {
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.3} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Bar dataKey="enrollments" name="Enrollments" fill="#4F46E5" radius={[6, 6, 0, 0]} barSize={24} />
           </BarChart>
@@ -100,9 +100,9 @@ function AttendanceTrendChart({ data }) {
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
-            <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748B' }} unit="%" axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.3} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+            <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#94A3B8' }} unit="%" axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Line type="monotone" dataKey="rate" name="Rate %" stroke="#10B981" strokeWidth={3} dot={{ fill: '#047857', r: 4 }} />
           </LineChart>
@@ -118,12 +118,12 @@ function FeeCollectionChart({ data }) {
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.3} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
-            <Bar dataKey="target" name="Target" fill="#E2E8F0" radius={[4, 4, 0, 0]} barSize={18} />
+            <Bar dataKey="target" name="Target" fill="#64748B" radius={[4, 4, 0, 0]} barSize={18} />
             <Bar dataKey="collected" name="Collected" fill="#F59E0B" radius={[4, 4, 0, 0]} barSize={18} />
           </BarChart>
         </ResponsiveContainer>
@@ -138,9 +138,9 @@ function StudentsByClassChart({ data }) {
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="label" width={90} tick={{ fontSize: 11, fill: '#334155' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} opacity={0.3} />
+            <XAxis type="number" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="label" width={90} tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Bar dataKey="value" name="Students" fill="#0284C7" radius={[0, 6, 6, 0]} barSize={18} />
           </BarChart>
@@ -162,7 +162,7 @@ function GenderRatioChart({ data }) {
             <Tooltip contentStyle={tooltipStyle} />
           </PieChart>
         </ResponsiveContainer>
-        <div className="flex gap-4 text-xs font-semibold text-slate-700 mt-2">
+        <div className="flex gap-4 text-xs font-semibold text-slate-700 dark:text-slate-300 mt-2">
           {data.map((d, i) => (
             <span key={d.label} className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_PALETTE[i % CHART_PALETTE.length] }} />
@@ -181,9 +181,9 @@ function DeptRatioChart({ data }) {
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748B' }} axisLine={false} tickLine={false} interval={0} />
-            <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.3} />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} interval={0} />
+            <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
             <Bar dataKey="teachers" name="Teachers" fill="#F59E0B" radius={[4, 4, 0, 0]} barSize={14} />
@@ -196,22 +196,22 @@ function DeptRatioChart({ data }) {
 }
 
 function GenericTable({ columns, rows, empty = 'No data available' }) {
-  if (!rows.length) return <p className="text-slate-400 text-sm text-center py-6 font-medium">{empty}</p>;
+  if (!rows.length) return <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-6 font-medium">{empty}</p>;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs text-left">
-        <thead className="border-b border-slate-100 text-slate-400 font-semibold uppercase tracking-wider bg-slate-50/50">
+        <thead className="border-b border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-400 font-semibold uppercase tracking-wider bg-slate-50/50 dark:bg-slate-800/40">
           <tr>
             {columns.map((c) => (
               <th key={c.key} className={`px-4 py-3 ${c.align === 'right' ? 'text-right' : ''}`}>{c.label}</th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 text-slate-800">
+        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-800 dark:text-slate-200">
           {rows.map((row, i) => (
-            <tr key={i} className="hover:bg-slate-50/70 transition-colors">
+            <tr key={i} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
               {columns.map((c) => (
-                <td key={c.key} className={`px-4 py-3 ${c.align === 'right' ? 'text-right font-semibold text-slate-900' : ''}`}>
+                <td key={c.key} className={`px-4 py-3 ${c.align === 'right' ? 'text-right font-semibold text-slate-900 dark:text-white' : ''}`}>
                   {c.render ? c.render(row) : row[c.key]}
                 </td>
               ))}
@@ -228,14 +228,16 @@ export default function AdminDashboard({ data }) {
   const g = data.graphs || {};
   const l = data.lists || {};
 
+  const asArr = (v) => (Array.isArray(v) ? v : []);
+
   return (
     <div className="space-y-6 pb-12 font-sans">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-slate-900 tracking-tight">Admin Overview</h1>
-          <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-2">
-            <Calendar size={15} className="text-indigo-600" />
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-slate-900 dark:text-white tracking-tight">Admin Overview</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 flex items-center gap-2">
+            <Calendar size={15} className="text-indigo-600 dark:text-indigo-400" />
             {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -248,7 +250,7 @@ export default function AdminDashboard({ data }) {
           </Link>
           <Link
             to="/users"
-            className="inline-flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-all"
+            className="inline-flex items-center gap-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-all"
           >
             <UserPlus size={16} /> Add Student
           </Link>
@@ -262,13 +264,13 @@ export default function AdminDashboard({ data }) {
 
       {/* Chart Panels Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-5"><EnrollmentChart data={g.enrollment_trend || []} /></div>
-        <div className="lg:col-span-3"><AttendanceTrendChart data={g.attendance_trend || []} /></div>
-        <div className="lg:col-span-4"><FeeCollectionChart data={g.fee_collection || []} /></div>
+        <div className="lg:col-span-5"><EnrollmentChart data={asArr(g.enrollment_trend)} /></div>
+        <div className="lg:col-span-3"><AttendanceTrendChart data={asArr(g.attendance_trend)} /></div>
+        <div className="lg:col-span-4"><FeeCollectionChart data={asArr(g.fee_collection)} /></div>
 
-        <div className="lg:col-span-5"><StudentsByClassChart data={g.students_by_class || []} /></div>
-        <div className="lg:col-span-3"><GenderRatioChart data={g.gender_ratio || []} /></div>
-        <div className="lg:col-span-4"><DeptRatioChart data={g.teacher_student_by_dept || []} /></div>
+        <div className="lg:col-span-5"><StudentsByClassChart data={asArr(g.students_by_class)} /></div>
+        <div className="lg:col-span-3"><GenderRatioChart data={asArr(g.gender_ratio)} /></div>
+        <div className="lg:col-span-4"><DeptRatioChart data={asArr(g.teacher_student_by_dept)} /></div>
 
         {/* Action Tables & Lists */}
         <div className="lg:col-span-7">
@@ -289,16 +291,16 @@ export default function AdminDashboard({ data }) {
             {l.upcoming_events?.length ? (
               <ul className="space-y-2.5">
                 {l.upcoming_events.map((e) => (
-                  <li key={e.id} className="flex items-center justify-between border border-slate-100 rounded-xl p-3.5 bg-slate-50/50 hover:bg-white transition-all">
+                  <li key={e.id} className="flex items-center justify-between border border-slate-100 dark:border-slate-800 rounded-xl p-3.5 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all">
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-slate-900 truncate">{e.title}</p>
-                      <p className="text-[11px] text-slate-500 font-medium truncate">{e.type} · {e.location || '—'}</p>
+                      <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">{e.title}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">{e.type} · {e.location || '—'}</p>
                     </div>
-                    <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full whitespace-nowrap">{e.date}</span>
+                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-1 rounded-full whitespace-nowrap">{e.date}</span>
                   </li>
                 ))}
               </ul>
-            ) : <p className="text-slate-400 text-sm text-center py-6 font-medium">No upcoming events</p>}
+            ) : <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-6 font-medium">No upcoming events</p>}
           </ListCard>
         </div>
 

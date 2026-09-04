@@ -76,6 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Student-specific Fee routes ───────────────────────────────────────
     Route::get('my/fees', [FeeController::class, 'studentFeeStatus']);
+    Route::post('my/fees/pay', [FeeController::class, 'studentPay']);
 
     // ── Homework (student submit) ────────────────────────────────────────
     Route::post('homework/{homework}/submit', [HomeworkController::class, 'submitHomework']);

@@ -1,80 +1,93 @@
-# SAMS — Cambodian School Management System
+# SAMS — School Attendance Management System
 
-A full-stack school management system for Cambodian schools, built with **Laravel** (backend API) and **React + Vite + Tailwind CSS v4** (frontend), connected to **MySQL**. It supports primary and secondary education from Grade 1 through Grade 12.
+[![Laravel](https://img.shields.io/badge/Backend-Laravel%2013-FF2D20?style=for-the-badge&logo=laravel)](https://laravel.com)
+[![React](https://img.shields.io/badge/Frontend-React%2019%20%2B%20Vite%208-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20v4-38BDF8?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com)
+[![Database](https://img.shields.io/badge/Database-MySQL%208-4479A1?style=for-the-badge&logo=mysql)](https://mysql.com)
+[![Design System](https://img.shields.io/badge/UI%20System-Impeccable%20Design-6366F1?style=for-the-badge)](#impeccable-design-system)
 
----
-
-## Tech Stack
-
-| Layer      | Technology                         |
-|------------|------------------------------------|
-| Backend    | Laravel 13, PHP 8.3, Sanctum Auth  |
-| Frontend   | React 19, Vite 8, Tailwind CSS v4  |
-| Database   | MySQL 8                            |
-| Auth       | Token-based (Sanctum Bearer tokens) |
+A full-stack, enterprise-grade **School Attendance Management System (SAMS)** tailored for Cambodian primary and secondary schools (Grade 1 to Grade 12). Built with a **Laravel 13 REST API** backend, **React 19 + Vite 8** frontend, and styled using the **Impeccable Design System**.
 
 ---
 
-## Features
+## 🎨 Impeccable Design System
 
-- **Role-based authentication** — Admin, Teacher, Student, Class President
-- **Student management** — CRUD with class assignment, filters, import/export
-- **Teacher management** — CRUD with department, position, assigned subjects/classes, status, filters, import/export
-- **Course management** — CRUD with course code, credits, department, semester, academic year, status, assigned teachers, filters, import/export
-- **Staff management** — CRUD with position, salary, attendance/leave tracking, filters, import/export
-- **Subject management** — CRUD
-- **Class management** — CRUD with department, semester, room, homeroom teacher, assigned courses, student roster, schedule view, filters, import/export
-- **Timetable / Schedule management** — CRUD with room + recurrence, weekly grid view, teacher/class/room conflict detection
-- **Attendance tracking** — Mark present/absent/late/excused per student per schedule (bulk + individual), filters, export
-- **Attendance reports** — Student, class, course, and department reports with trends and low-attendance alerts
-- **Leave management** — Submit, approve/reject, and track leave requests with filters and export
-- **Dashboard** — Overview counts for all entities
-- **Academic progression** — Grade 1–12 and primary/lower-secondary/upper-secondary classification, enrollment history, and promotion workflow
-- **School operations** — Academic years, semesters, rooms, departments, payroll, library, homework, exams, report cards, fees, events, documents, leave, and audit logs
-- **Khmer readiness** — Khmer-compatible fonts and a persistent Khmer/English interface switch
+SAMS features an updated modern visual aesthetic adhering to the **Impeccable Design System** standards:
 
-## Before a school goes live
-
-This project is ready for a controlled pilot after the following operational steps are completed:
-
-1. Copy `.env.example` to `.env`, generate a new application key, and use a dedicated MySQL user. Never deploy the repository demo credentials.
-2. Set `APP_ENV=production`, `APP_DEBUG=false`, a real HTTPS `APP_URL`, mail settings, and `APP_TIMEZONE=Asia/Phnom_Penh`.
-3. Run `php artisan migrate --force`, build the frontend, configure the web server and queue/scheduler workers, and enable daily encrypted database/file backups.
-   The built-in `php artisan sams:backup` command creates timestamped database and private-document backups under `storage/app/private/backups`; copy those files to encrypted off-site storage and test restoration regularly.
-4. Import a small real dataset first. Verify student identifiers, guardian links, grade levels, classes, teacher assignments, fees, and Khmer names before importing the full school.
-5. Test each role (admin, principal, teacher, accountant, librarian, staff, student, parent) with test accounts, especially student privacy, marks, fees, documents, promotion, and exports.
-6. Keep the system in pilot for one term and reconcile attendance, grades, invoices, and reports against the school’s paper records before public rollout.
-
-The application includes backend authorization and regression tests, but school policy decisions still need confirmation: grading scale, attendance rules, fee categories, promotion criteria, document retention, and who may access parent/student data. A production deployment also needs monitoring, restore testing, HTTPS, rate limiting at the reverse proxy, and a backup retention policy.
+- **Typography**: Google Fonts integration using **Plus Jakarta Sans** for display headers, **Inter** for readable body UI, and **JetBrains Mono** for numerical IDs and timestamps.
+- **Glassmorphic Interfaces**: Ambient dark slate gradients, high-contrast surface panels (`.impeccable-card`), rounded-2xl containers, and frosted-glass top headers (`.impeccable-glass`).
+- **Role-Aware Dashboards**: Tailored views for **Admin**, **Teacher**, **Student**, and **Parent** with dynamic Recharts color palettes (emerald, indigo, amber, red).
+- **Interactive Operational Views**: Bulk roster attendance marking with live statistics chips, filter toolbars, and instant quick-fill demo sign-in buttons.
 
 ---
 
-## Getting Started
+## 🛠️ Tech Stack
+
+| Layer      | Technology                                    | Description |
+|------------|-----------------------------------------------|-------------|
+| **Backend** | Laravel 13 (PHP 8.3)                         | RESTful API & business logic layer |
+| **Authentication** | Laravel Sanctum                       | Bearer token-based stateless API authentication |
+| **Frontend** | React 19 + Vite 8                            | Ultra-fast Single Page Application (SPA) |
+| **Styling**  | Tailwind CSS v4                              | Modern utility styling & custom CSS tokens |
+| **Charts**   | Recharts                                     | Dynamic interactive grade & attendance visualizations |
+| **Database** | MySQL 8 (utf8mb4_unicode_ci)                 | Relational data storage |
+
+---
+
+## ✨ Features
+
+### 🔑 Authentication & Roles
+- **Role-Based Access Control (RBAC)** — Dedicated experiences and permissions for **Admin**, **Teacher**, **Student**, **Class President**, and **Parent**.
+- **Glassmorphic Login** — Quick-fill demo account selector for instant role testing.
+
+### 📊 Dashboards & Analytics
+- **Admin Dashboard**: System-wide KPIs, overall attendance trends, departmental score distributions, and quick management links.
+- **Teacher Dashboard**: Today's class schedules, quick roster marking actions, subject grade statistics, and student attendance alerts.
+- **Student Dashboard**: Grade trend graphs, subject performance breakdowns, attendance percentages, upcoming assignments, and timetable view.
+
+### 📋 School Management & Operations
+- **Student Directory**: Complete student lifecycle management, filtering by grade/status, search, CSV import/export, and modal profiles.
+- **Teacher Directory**: Faculty directory, department management, subject & homeroom class assignments, and workload tracking.
+- **Class & Timetable Management**: Section allocations, room assignments, weekly grid views, and live **conflict detection** (teacher, class, or room double-booking prevention).
+- **Attendance & Leave Management**: Bulk daily roster attendance marking, interactive status toggles (*Present*, *Late*, *Absent*), leave request workflows with admin approval/rejection.
+- **Reports & Audit Logs**: Historical attendance logs, course summary breakdowns, low-attendance threshold warnings, and CSV data export.
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- PHP 8.1+
-- Composer
-- Node.js 20+
-- MySQL 8
+- **PHP**: `^8.1` or higher
+- **Composer**: `^2.0`
+- **Node.js**: `^20.0` or higher
+- **MySQL**: `^8.0`
 
-### 1. Clone & Install
+---
+
+### 1. Clone & Dependencies
 
 ```bash
-# Backend
+# Clone the repository
+git clone https://github.com/VannsanNin/SAMS.git
+cd SAMS
+
+# Install Backend Dependencies
 cd backend-laravel
 composer install
-cp .env.example .env   # already done if using this repo
+cp .env.example .env
 php artisan key:generate
 
-# Frontend
+# Install Frontend Dependencies
 cd ../fontend-react
 npm install
 ```
 
+---
+
 ### 2. Configure Database
 
-Edit `backend-laravel/.env`:
+Edit `backend-laravel/.env` with your local MySQL credentials:
 
 ```env
 DB_CONNECTION=mysql
@@ -85,176 +98,104 @@ DB_USERNAME=root
 DB_PASSWORD=your_password
 ```
 
-Then create the database and run migrations:
+Create the database and run migrations with sample seed data:
 
 ```bash
+# Create Database
 mysql -u root -p -e "CREATE DATABASE sams CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+# Run Migrations & Seed
 cd backend-laravel
 php artisan migrate:fresh --seed
 ```
 
-### 3. Run
+---
+
+### 3. Running Locally
+
+Start both the backend API server and frontend development server:
 
 ```bash
-# Terminal 1 — Laravel API
+# Terminal 1 — Laravel API Backend (http://localhost:8000)
 cd backend-laravel
-php artisan serve              # http://localhost:8000
+php artisan serve
 
-# Terminal 2 — React frontend
+# Terminal 2 — React Vite Frontend (http://localhost:5173)
 cd fontend-react
-npm run dev                    # http://localhost:5173
+npm run dev
 ```
 
-The Vite dev server proxies `/api/*` requests to `localhost:8000`.
+> **Note**: Vite's development server automatically proxies requests from `/api/*` to `http://localhost:8000`.
 
 ---
 
-## Demo Accounts
+## 👥 Demo Accounts
 
-After running `php artisan db:seed`, these accounts are available:
+After running `php artisan db:seed`, the following test accounts are pre-configured:
 
-| Role             | Email                     | Password      |
-|------------------|---------------------------|---------------|
-| **Admin**        | admin@school.edu          | admin123      |
-| **Teacher**      | teacher@school.edu        | teacher123    |
-| **Class President** | student1@school.edu    | student123    |
-| **Student**      | student2@school.edu       | student123    |
-| **Student**      | student3@school.edu       | student123    |
-| **Student**      | student4@school.edu       | student123    |
-| **Student**      | student5@school.edu       | student123    |
-
----
-
-## API Endpoints
-
-All endpoints (except `/api/login`) require `Authorization: Bearer {token}` header.
-
-### Auth
-
-| Method | Endpoint       | Description                     |
-|--------|----------------|---------------------------------|
-| POST   | `/api/login`   | Get token (no auth required)    |
-| POST   | `/api/logout`  | Revoke token                    |
-| GET    | `/api/me`      | Current user + profile          |
-| GET    | `/api/dashboard` | Aggregated dashboard stats (counts, today's summary, 30-day trend, monthly rates, breakdowns by class/subject/department, top performers, alerts, today's schedule, recent records, period reports) |
-
-> **Note:** "Departments" are derived from the `department` field on the students table (e.g. Science, Social Science, Languages).
-
-### CRUD Resources
-
-Each resource exposes standard RESTful routes:
-
-| Method   | Endpoint                     | Action       |
-|----------|------------------------------|--------------|
-| GET      | `/api/{resource}`            | List all     |
-| POST     | `/api/{resource}`            | Create       |
-| GET      | `/api/{resource}/{id}`       | Show one     |
-| PUT/PATCH| `/api/{resource}/{id}`       | Update       |
-| DELETE   | `/api/{resource}/{id}`       | Delete       |
-
-**Resources:** `students`, `teachers`, `staff`, `subjects`, `classes`, `schedules`, `attendances`, `leaves`
-
-**Students & Teachers also expose:**
-
-| Method   | Endpoint                    | Action                                   |
-|----------|-----------------------------|------------------------------------------|
-| GET      | `/api/students/filters`     | Filter dropdown options                  |
-| GET      | `/api/students/export`      | Export filtered rows to CSV              |
-| POST     | `/api/students/import`      | Import students from CSV/XLSX            |
-| GET      | `/api/teachers/filters`     | Filter dropdown options (incl. subjects/classes) |
-| GET      | `/api/teachers/export`      | Export filtered teachers to CSV          |
-| POST     | `/api/teachers/import`      | Import teachers from CSV/XLSX            |
-| GET      | `/api/subjects/filters`     | Filter dropdown options (incl. teachers) |
-| GET      | `/api/subjects/export`      | Export filtered courses to CSV           |
-| POST     | `/api/subjects/import`      | Import courses from CSV/XLSX             |
-| GET      | `/api/classes/filters`      | Filter dropdown options (incl. teachers/courses) |
-| GET      | `/api/classes/export`       | Export filtered classes to CSV           |
-| POST     | `/api/classes/import`       | Import classes from CSV/XLSX             |
-| GET      | `/api/schedules/filters`    | Filter dropdown options (days, rooms, etc.) |
-| GET      | `/api/schedules/conflicts`  | Preview teacher/class/room time conflicts |
-| GET      | `/api/schedules/export`     | Export filtered timetable to CSV         |
-| GET      | `/api/staff/filters`        | Filter dropdown options (positions, genders) |
-| GET      | `/api/staff/export`         | Export filtered staff to CSV             |
-| POST     | `/api/staff/import`         | Import staff from CSV/XLSX               |
-| GET      | `/api/leaves/filters`       | Filter dropdown options (statuses, students, staff) |
-| GET      | `/api/leaves/export`        | Export filtered leave requests to CSV    |
-| POST     | `/api/leaves/{leave}/approve` | Approve a pending leave request        |
-| POST     | `/api/leaves/{leave}/reject`  | Reject a pending leave request         |
-| GET      | `/api/attendances/filters`  | Filter dropdown options (statuses, students, staff, classes, schedules) |
-| GET      | `/api/attendances/export`   | Export filtered attendance records to CSV |
-| POST     | `/api/attendances/bulk`     | Bulk record/update attendance for a schedule |
-| GET      | `/api/reports/attendance`   | Attendance summary: by class/course/department, 30-day trend, low-attendance list (filters: `class_id`, `department`, `date_from`, `date_to`, `threshold`) |
-| GET      | `/api/reports/attendance/student` | Per-course attendance breakdown for one student (`student_id` required) |
-| GET      | `/api/reports/attendance/filters` | Report dropdown options (classes, departments, students) |
-
-> **Conflict detection:** `store`/`update` on `/api/schedules` are rejected with HTTP 422 if the new slot overlaps an existing one for the same **teacher**, **class**, or **room** on the same day (self is excluded when updating). Use `GET /api/schedules/conflicts` to preview conflicts live in the form.
-
-- **Import** accepts `.csv` or `.xlsx`; requires `name` + `email` for people, `course name` for courses, `class name` for classes. Teacher rows may include `courses`/`subjects` and `classes` columns (semicolon- or comma-separated names/IDs) to auto-assign pivots; course rows may include a `teachers` column; class rows may include `teacher` (by name) and `courses` columns. Staff rows require `name` + `email` (position, salary, hire date optional).
-- **Export** honors the same query filters as the list endpoint.
-- **Leaves** are created with `status=pending`; admin approves or rejects via the dedicated endpoints (or by updating `status` directly).
+| Role | Email | Password | Access Level |
+|------|-------|----------|--------------|
+| **Admin** | `admin@school.edu` | `admin123` | Full system control & settings |
+| **Teacher** | `teacher@school.edu` | `teacher123` | Class management & attendance marking |
+| **Student (Class Pres.)** | `student1@school.edu` | `student123` | Student dashboard & class roster helper |
+| **Student** | `student2@school.edu` | `student123` | Student portal & timetable view |
+| **Student** | `student3@school.edu` | `student123` | Student portal |
+| **Parent** | `parent1@school.edu` | `parent123` | Student progress monitoring |
 
 ---
 
-## Database Schema
+## 📡 API Overview
 
-See [`sql.sql`](./sql.sql) for the full SQL schema and [`table.md`](./table.md) for detailed table documentation.
+All API endpoints (except `/api/login`) require an `Authorization: Bearer {token}` HTTP header.
 
-8 tables + 3 Laravel system tables:
+### Core Endpoints
 
-| # | Table                    | OOAD Parent | Description               |
-|---|--------------------------|-------------|---------------------------|
-| 1 | `teachers`               | Person      | Teacher profiles          |
-| 2 | `staff`                  | Person      | Staff profiles            |
-| 3 | `subjects`               | —           | Courses (course code, credits, department, semester, academic year, status) |
-| 4 | `classes`                | —           | Classes (name/code, department, semester, room) |
-| 5 | `students`               | Person      | Student profiles          |
-| 6 | `schedules`              | —           | Weekly timetable (day, time, room, recurrence) |
-| 7 | `attendances`            | Event       | Attendance records        |
-| 8 | `leaves`                 | Event       | Leave requests            |
-| 9 | `teacher_subject`        | —           | Pivot: teachers ↔ subjects |
-| 10 | `teacher_class`          | —           | Pivot: teachers ↔ classes  |
-| 11 | `class_subject`          | —           | Pivot: classes ↔ courses   |
-| 12 | `users`                  | —           | Login accounts + roles    |
-| — | `personal_access_tokens` | —           | Sanctum API tokens        |
-| — | `password_reset_tokens`  | —           | Password resets           |
-| — | `sessions`               | —           | Session storage           |
+| Category | Method | Endpoint | Description |
+|----------|--------|----------|-------------|
+| **Auth** | `POST` | `/api/login` | Authenticate user & obtain Sanctum Bearer token |
+| | `POST` | `/api/logout` | Revoke active token |
+| | `GET` | `/api/me` | Fetch authenticated user profile & permissions |
+| **Dashboard**| `GET` | `/api/dashboard` | Aggregated statistical counters, charts, & trend metrics |
+| **Resources**| `GET`, `POST`, `PUT`, `DELETE` | `/api/students` | Manage student records |
+| | `GET`, `POST`, `PUT`, `DELETE` | `/api/teachers` | Manage faculty members |
+| | `GET`, `POST`, `PUT`, `DELETE` | `/api/classes` | Manage class sections & assigned courses |
+| | `GET`, `POST`, `PUT`, `DELETE` | `/api/schedules` | Manage weekly schedules with conflict checks |
+| | `GET`, `POST` | `/api/attendances` | Fetch records & bulk mark attendance roster |
+| | `GET`, `POST` | `/api/leaves` | Submit and approve/reject student/staff leave requests |
+| **Reports** | `GET` | `/api/reports/attendance` | Attendance summaries by class, course, and department |
 
 ---
 
-## OOAD Class Design
+## 🗄️ Database Architecture & OOAD Design
 
 ```
-Person (abstract)
-├── Student     → table: students     (class_id, parent_name, parent_phone, image)
-├── Teacher     → table: teachers     (department, position, salary, hire_date, status, teacher_id, image)
-└── Staff       → table: staff        (position, salary, hire_date, image)
+Person (Abstract)
+├── Student     → Table: `students`     (class_id, parent_name, parent_phone, image)
+├── Teacher     → Table: `teachers`     (department, position, salary, hire_date, status)
+└── Staff       → Table: `staff`        (position, salary, hire_date, image)
 
-Event (abstract)
-├── Attendance  → table: attendances  (student_id, schedule_id, status)
-└── Leave       → table: leaves       (student_id, date_from, date_to, reason, status)
+Event (Abstract)
+├── Attendance  → Table: `attendances`  (student_id, schedule_id, status)
+└── Leave       → Table: `leaves`       (student_id, date_from, date_to, reason, status)
 
-Standalone:
-  Subject (Course) → table: subjects     (course_code, subject_name, credits, description, department, semester, academic_year, status)
-  SchoolClass   → table: classes      (class_name, teacher_id, department, academic_year, semester, room)
-  Schedule      → table: schedules    (class_id, subject_id, teacher_id, day, time_start, time_end, room, recurrence)
-
-Associations (many-to-many):
-  Teacher ↔ Subject  → table: teacher_subject  (teacher_id, subject_id)  # teachers teach courses
-  Teacher ↔ Class    → table: teacher_class    (teacher_id, class_id)    # teachers supervise classes
-  Class    ↔ Subject  → table: class_subject    (class_id, subject_id)    # courses per class
+Core Domain Models:
+├── Subject     → Table: `subjects`     (course_code, subject_name, credits, department)
+├── Class       → Table: `classes`      (class_name, teacher_id, department, room)
+└── Schedule    → Table: `schedules`    (class_id, subject_id, teacher_id, day, time_start, time_end)
 ```
 
 ---
 
-## Seeded Data
+## 🔒 Production Readiness Checklist
 
-Running `php artisan db:seed` inserts:
+Before going live:
+1. **Environment Setup**: Set `APP_ENV=production`, `APP_DEBUG=false`, and configure a valid `APP_URL` with HTTPS.
+2. **Timezone**: Ensure `APP_TIMEZONE=Asia/Phnom_Penh` is configured in `config/app.php`.
+3. **Database Backups**: Use `php artisan sams:backup` to trigger automated, timestamped database backups stored securely in `storage/app/private/backups`.
+4. **Security**: Update default seed password credentials and enforce Sanctum token rotation.
 
-- **7 teachers** (1 Head Teacher + 6 across Mathematics, Science, Languages, Social Science)
-- **1 staff** (Sreyneang Chen)
-- **8 courses** (Mathematics, Khmer Literature, English, Physics, Chemistry, History, Geography, Computer Science — with codes, credits, departments, semesters, years, statuses)
-- **3 classes** (10-A, 10-B, 11-A — with department, semester, room, assigned courses)
-- **78 students** (50 male, 28 female — Khmer names)
-- **15 schedules** (5 days × 3 classes — 2h blocks, rooms, weekly recurring)
-- **~52 attendances** & **~16 leaves**
-- **7 user accounts** (1 admin, 1 teacher, 5 students)
+---
+
+## 📜 License
+
+This project is open-source software licensed under the [MIT License](LICENSE).

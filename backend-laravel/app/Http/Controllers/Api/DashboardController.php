@@ -299,7 +299,7 @@ class DashboardController extends Controller
                     'label' => Subject::find($sid)?->subject_name ?? 'Subject ' . $sid,
                     'average' => round($avg, 2),
                 ];
-            });
+            })->values();
         }
 
         // Attendance trend for my classes (last 6 weeks)

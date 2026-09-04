@@ -28,10 +28,10 @@ const tooltipStyle = {
 
 function StatusBadge({ status }) {
   const styles = {
-    active: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    inactive: "bg-slate-100 text-slate-600 border-slate-200",
-    graduated: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    suspended: "bg-red-50 text-red-700 border-red-200",
+    active: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800",
+    inactive: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
+    graduated: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800",
+    suspended: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800",
   };
   const cls = styles[status] || styles.inactive;
   return (
@@ -42,7 +42,11 @@ function StatusBadge({ status }) {
 }
 
 function AttendanceBadge({ value }) {
-  const cls = value < 75 ? "text-red-600 bg-red-50 border-red-200" : value < 85 ? "text-amber-600 bg-amber-50 border-amber-200" : "text-emerald-600 bg-emerald-50 border-emerald-200";
+  const cls = value < 75
+    ? "text-red-600 bg-red-50 border-red-200 dark:text-red-300 dark:bg-red-950/50 dark:border-red-800"
+    : value < 85
+      ? "text-amber-600 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-950/50 dark:border-amber-800"
+      : "text-emerald-600 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-950/50 dark:border-emerald-800";
   return (
     <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${cls}`}>
       {value}%
@@ -353,8 +357,10 @@ export default function Students() {
     );
   }
 
-  const gradeDistribution = data.grade_distribution || [];
-  const genderRatio = (data.gender_ratio || []).filter((g) => g.value > 0);
+  const gradeDistribution = (Array.isArray(data.grade_distribution) ? data.grade_distribution : []).length
+    ? data.grade_distribution
+    : [];
+  const genderRatio = (Array.isArray(data.gender_ratio) ? data.gender_ratio : []).filter((g) => g.value > 0);
 
   return (
     <div className="space-y-6 pb-12 font-sans">
@@ -450,7 +456,7 @@ export default function Students() {
       <div className="impeccable-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="border-b border-slate-100 text-slate-400 font-semibold uppercase tracking-wider bg-slate-50/50">
+            <thead className="border-b border-slate-100 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 font-semibold uppercase tracking-wider bg-slate-50/50 dark:bg-slate-800/40">
               <tr>
                 <th className="px-4 py-3">ID</th>
                 <th className="px-4 py-3">Name</th>
@@ -462,14 +468,14 @@ export default function Students() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-800">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 text-slate-800 dark:text-slate-200">
               {filtered.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="px-4 py-3 font-mono font-medium text-slate-500">{s.student_id || "—"}</td>
-                  <td className="px-4 py-3 font-semibold text-slate-900">{s.name}</td>
-                  <td className="px-4 py-3">{s.grade}{s.section}</td>
-                  <td className="px-4 py-3 text-slate-600">{s.guardian || "—"}</td>
-                  <td className="px-4 py-3 text-slate-600">{s.contact || "—"}</td>
+                <tr key={s.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                  <td className="px-4 py-3 font-mono font-medium text-slate-600 dark:text-slate-400">{s.student_id || "—"}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">{s.name}</td>
+                  <td className="px-4 py-3 text-slate-800 dark:text-slate-200">{s.grade}{s.section}</td>
+                  <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{s.guardian || "—"}</td>
+                  <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{s.contact || "—"}</td>
                   <td className="px-4 py-3"><AttendanceBadge value={s.attendance} /></td>
                   <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
                   <td className="px-4 py-3 text-right">
@@ -489,7 +495,7 @@ export default function Students() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400 font-medium">
+                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 font-medium">
                     No students found matching current filters.
                   </td>
                 </tr>
@@ -497,7 +503,7 @@ export default function Students() {
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/30 text-xs font-semibold text-slate-400">
+        <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-700/60 bg-slate-50/30 dark:bg-slate-800/30 text-xs font-semibold text-slate-600 dark:text-slate-400">
           Showing {filtered.length} of {students.length} students
         </div>
       </div>

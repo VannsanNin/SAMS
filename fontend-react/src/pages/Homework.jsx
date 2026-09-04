@@ -275,7 +275,7 @@ export default function Homework() {
                   <XAxis dataKey="name" tick={{ fontSize: 12, fill: COLORS.slate }} axisLine={{ stroke: COLORS.hairline }} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: COLORS.slate }} axisLine={false} tickLine={false} width={32} />
                   <Tooltip />
-                  <Bar dataKey="value" fill={COLORS.ink} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="value" fill={COLORS.indigo} radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </Panel>
@@ -287,7 +287,7 @@ export default function Homework() {
                     { name: "Graded", value: gradedCount },
                   ]} dataKey="value" nameKey="name" innerRadius={40} outerRadius={65} paddingAngle={2}>
                     <Cell fill={COLORS.sage} />
-                    <Cell fill={COLORS.ink} />
+                    <Cell fill={COLORS.amber} />
                   </Pie>
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
