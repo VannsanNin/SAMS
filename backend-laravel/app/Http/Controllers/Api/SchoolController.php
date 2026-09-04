@@ -24,7 +24,7 @@ class SchoolController extends Controller
 
     public function storeAcademicYear(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'name' => 'required|string|unique:academic_years',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
@@ -35,13 +35,34 @@ class SchoolController extends Controller
             AcademicYear::where('is_current', true)->update(['is_current' => false]);
         }
 
-        $year = AcademicYear::create($request->all());
+        $year = AcademicYear::create($data);
         return response()->json($year, 201);
     }
 
     public function semesters(AcademicYear $academicYear)
     {
         return response()->json($academicYear->semesters);
+    }
+
+    public function updateAcademicYear(Request $request, AcademicYear $academicYear)
+    {
+        $data = $request->validate([
+            'name' => 'sometimes|string|unique:academic_years,name,' . $academicYear->id,
+            'start_date' => 'sometimes|date',
+            'end_date' => 'sometimes|date|after:start_date',
+            'is_current' => 'sometimes|boolean',
+        ]);
+        if (($data['is_current'] ?? false) === true) {
+            AcademicYear::where('id', '<>', $academicYear->id)->where('is_current', true)->update(['is_current' => false]);
+        }
+        $academicYear->update($data);
+        return response()->json($academicYear);
+    }
+
+    public function destroyAcademicYear(AcademicYear $academicYear)
+    {
+        $academicYear->delete();
+        return response()->noContent();
     }
 
     public function storeSemester(Request $request, AcademicYear $academicYear)
@@ -70,20 +91,27 @@ class SchoolController extends Controller
 
     public function storeDepartment(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'name' => 'required|string|unique:departments',
             'code' => 'required|string|unique:departments',
             'description' => 'nullable|string',
             'head_id' => 'nullable|exists:teachers,id',
         ]);
 
-        $dept = Department::create($request->all());
+        $dept = Department::create($data);
         return response()->json($dept, 201);
     }
 
     public function updateDepartment(Request $request, Department $department)
     {
-        $department->update($request->all());
+        $data = $request->validate([
+            'name' => 'sometimes|string|unique:departments,name,' . $department->id,
+            'code' => 'sometimes|string|unique:departments,code,' . $department->id,
+            'description' => 'nullable|string',
+            'head_id' => 'nullable|exists:teachers,id',
+            'is_active' => 'sometimes|boolean',
+        ]);
+        $department->update($data);
         return response()->json($department);
     }
 
@@ -96,15 +124,35 @@ class SchoolController extends Controller
 
     public function storeBuilding(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'name' => 'required|string',
             'code' => 'required|string|unique:buildings',
             'address' => 'nullable|string',
             'total_floors' => 'nullable|integer|min:1',
         ]);
 
-        $building = Building::create($request->all());
+        $building = Building::create($data);
         return response()->json($building, 201);
+    }
+
+    public function updateBuilding(Request $request, Building $building)
+    {
+        $data = $request->validate([
+            'name' => 'sometimes|string',
+            'code' => 'sometimes|string|unique:buildings,code,' . $building->id,
+            'address' => 'nullable|string',
+            'total_floors' => 'sometimes|integer|min:1',
+            'is_active' => 'sometimes|boolean',
+        ]);
+        $building->update($data);
+        return response()->json($building);
+    }
+
+    public function destroyBuilding(Building $building)
+    {
+        abort_if($building->rooms()->exists(), 422, 'Move or remove rooms before deleting this building.');
+        $building->delete();
+        return response()->noContent();
     }
 
     public function rooms(Request $request)
@@ -120,7 +168,7 @@ class SchoolController extends Controller
 
     public function storeRoom(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'name' => 'required|string',
             'number' => 'required|string',
             'building_id' => 'nullable|exists:buildings,id',
@@ -129,8 +177,29 @@ class SchoolController extends Controller
             'capacity' => 'nullable|integer|min:1',
         ]);
 
-        $room = Room::create($request->all());
+        $room = Room::create($data);
         return response()->json($room, 201);
+    }
+
+    public function updateRoom(Request $request, Room $room)
+    {
+        $data = $request->validate([
+            'name' => 'sometimes|string',
+            'number' => 'sometimes|string',
+            'building_id' => 'nullable|exists:buildings,id',
+            'floor' => 'sometimes|integer|min:0',
+            'type' => 'sometimes|in:classroom,lab,office,library,hall,other',
+            'capacity' => 'nullable|integer|min:1',
+            'is_active' => 'sometimes|boolean',
+        ]);
+        $room->update($data);
+        return response()->json($room);
+    }
+
+    public function destroyRoom(Room $room)
+    {
+        $room->delete();
+        return response()->noContent();
     }
 
     // ─── Payroll ────────────────────────────────────────────────────────────

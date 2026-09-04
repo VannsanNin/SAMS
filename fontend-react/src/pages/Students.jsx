@@ -5,7 +5,8 @@ import {
 } from "recharts";
 import { apiFetch } from "../api";
 import Modal from "../components/Modal";
-import { COLORS, CHART_COLORS, KPI, Panel, KpiRow, ChartGrid } from "../components/shared";
+import { KPI, Panel, KpiRow, ChartGrid } from "../components/shared";
+import { Search, Eye, Edit3, Trash2, UserPlus } from "lucide-react";
 
 const EMPTY_FORM = {
   student_id: "", name: "", gender: "Male", dob: "", phone: "", email: "",
@@ -14,58 +15,54 @@ const EMPTY_FORM = {
   parent_name: "", parent_phone: "",
 };
 
-const STATUS_META = {
-  active: "sage",
-  inactive: "slate",
-  graduated: "amber",
-  suspended: "coral",
+const CHART_PALETTE = ['#4F46E5', '#F59E0B', '#10B981', '#0284C7'];
+
+const tooltipStyle = {
+  backgroundColor: '#0F172A',
+  borderRadius: '0.75rem',
+  border: 'none',
+  color: '#F8FAFC',
+  fontSize: '12px',
+  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2)',
 };
 
-const inputCls = (style) => ({
-  ...style,
-  width: "100%",
-  paddingTop: "8px",
-  paddingBottom: "8px",
-  paddingLeft: "12px",
-  paddingRight: "12px",
-  fontSize: "13px",
-  background: COLORS.card,
-  color: COLORS.ink,
-  border: `1px solid ${COLORS.hairline}`,
-  outline: "none",
-});
-
 function StatusBadge({ status }) {
-  const tone = COLORS[STATUS_META[status] || "slate"];
+  const styles = {
+    active: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    inactive: "bg-slate-100 text-slate-600 border-slate-200",
+    graduated: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    suspended: "bg-red-50 text-red-700 border-red-200",
+  };
+  const cls = styles[status] || styles.inactive;
   return (
-    <span
-      className="text-[11px] px-2 py-0.5 rounded-sm capitalize"
-      style={{ color: tone, border: `1px solid ${tone}` }}
-    >
+    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border capitalize ${cls}`}>
       {status}
     </span>
   );
 }
 
 function AttendanceBadge({ value }) {
-  const tone = value < 75 ? COLORS.coral : value < 85 ? COLORS.amber : COLORS.sage;
-  return <span style={{ color: tone }}>{value}%</span>;
+  const cls = value < 75 ? "text-red-600 bg-red-50 border-red-200" : value < 85 ? "text-amber-600 bg-amber-50 border-amber-200" : "text-emerald-600 bg-emerald-50 border-emerald-200";
+  return (
+    <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${cls}`}>
+      {value}%
+    </span>
+  );
 }
 
 function Field({ label, required, children }) {
   return (
     <label className="block">
-      <span className="block text-[12px] mb-1" style={{ color: COLORS.slate }}>
-        {label}{required && <span style={{ color: COLORS.coral }}> *</span>}
+      <span className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+        {label}{required && <span className="text-red-500"> *</span>}
       </span>
       {children}
     </label>
   );
 }
 
-/* ---------------------------------------------------------
-   Add / Edit form
---------------------------------------------------------- */
+const inputClass = "w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all";
+
 function StudentForm({ initial, classes, onSave, onClose }) {
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
@@ -83,7 +80,7 @@ function StudentForm({ initial, classes, onSave, onClose }) {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Validation failed. Check the required fields.");
+      if (!res.ok) throw new Error(data.message || "Validation failed. Check required fields.");
       onSave(data);
     } catch (err) {
       setError(err.message);
@@ -91,88 +88,81 @@ function StudentForm({ initial, classes, onSave, onClose }) {
     }
   };
 
-  const base = inputCls({});
-  const baseCls = (extra) => ({ ...base, ...extra });
-
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-5 font-sans">
       {error && (
-        <div className="p-3 text-[12px] rounded-sm" style={{ background: "#FBF3EF", color: COLORS.coral, border: `1px solid ${COLORS.coral}` }}>
+        <div className="p-3.5 text-xs font-semibold rounded-xl bg-red-50 text-red-600 border border-red-200">
           {error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Full Name" required>
-          <input className="w-full" style={baseCls({})} value={form.name} onChange={set("name")} required />
+          <input className={inputClass} value={form.name} onChange={set("name")} required />
         </Field>
         <Field label="Gender" required>
-          <select className="w-full" style={baseCls({})} value={form.gender} onChange={set("gender")}>
+          <select className={inputClass} value={form.gender} onChange={set("gender")}>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
             <option value="Other">Other</option>
           </select>
         </Field>
         <Field label="Date of Birth" required>
-          <input type="date" className="w-full" style={baseCls({})} value={form.dob} onChange={set("dob")} required />
+          <input type="date" className={inputClass} value={form.dob} onChange={set("dob")} required />
         </Field>
         <Field label="Phone" required>
-          <input className="w-full" style={baseCls({})} value={form.phone} onChange={set("phone")} required />
+          <input className={inputClass} value={form.phone} onChange={set("phone")} required />
         </Field>
         <Field label="Email" required>
-          <input type="email" className="w-full" style={baseCls({})} value={form.email} onChange={set("email")} required />
+          <input type="email" className={inputClass} value={form.email} onChange={set("email")} required />
         </Field>
         <Field label="Address" required>
-          <input className="w-full" style={baseCls({})} value={form.address} onChange={set("address")} required />
+          <input className={inputClass} value={form.address} onChange={set("address")} required />
         </Field>
         <Field label="Class" required>
-          <select className="w-full" style={baseCls({})} value={form.class_id} onChange={set("class_id")} required>
+          <select className={inputClass} value={form.class_id} onChange={set("class_id")} required>
             <option value="">— Select Class —</option>
             {classes.map((c) => <option key={c.id} value={c.id}>{c.class_name}</option>)}
           </select>
         </Field>
         <Field label="Student ID">
-          <input className="w-full" style={baseCls({})} value={form.student_id} onChange={set("student_id")} placeholder="Auto-generated if blank" />
+          <input className={inputClass} value={form.student_id} onChange={set("student_id")} placeholder="Auto-generated if blank" />
         </Field>
         <Field label="Department">
-          <input className="w-full" style={baseCls({})} value={form.department} onChange={set("department")} placeholder="e.g. Computer Science" />
+          <input className={inputClass} value={form.department} onChange={set("department")} placeholder="e.g. Computer Science" />
         </Field>
         <Field label="Major">
-          <input className="w-full" style={baseCls({})} value={form.major} onChange={set("major")} placeholder="e.g. Software Engineering" />
+          <input className={inputClass} value={form.major} onChange={set("major")} placeholder="e.g. Software Engineering" />
         </Field>
         <Field label="Academic Year">
-          <input className="w-full" style={baseCls({})} value={form.academic_year} onChange={set("academic_year")} placeholder="e.g. 2025-2026" />
+          <input className={inputClass} value={form.academic_year} onChange={set("academic_year")} placeholder="e.g. 2025-2026" />
         </Field>
         <Field label="Semester">
-          <input className="w-full" style={baseCls({})} value={form.semester} onChange={set("semester")} placeholder="e.g. Semester 1" />
+          <input className={inputClass} value={form.semester} onChange={set("semester")} placeholder="e.g. Semester 1" />
         </Field>
         <Field label="Enrollment Date">
-          <input type="date" className="w-full" style={baseCls({})} value={form.enrollment_date} onChange={set("enrollment_date")} />
+          <input type="date" className={inputClass} value={form.enrollment_date} onChange={set("enrollment_date")} />
         </Field>
         <Field label="Status">
-          <select className="w-full" style={baseCls({})} value={form.status} onChange={set("status")}>
+          <select className={inputClass} value={form.status} onChange={set("status")}>
             {["active", "inactive", "graduated", "suspended"].map((s) => (
               <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
             ))}
           </select>
         </Field>
         <Field label="Parent / Guardian Name" required>
-          <input className="w-full" style={baseCls({})} value={form.parent_name} onChange={set("parent_name")} required />
+          <input className={inputClass} value={form.parent_name} onChange={set("parent_name")} required />
         </Field>
         <Field label="Parent / Guardian Phone" required>
-          <input className="w-full" style={baseCls({})} value={form.parent_phone} onChange={set("parent_phone")} required />
+          <input className={inputClass} value={form.parent_phone} onChange={set("parent_phone")} required />
         </Field>
       </div>
 
-      <div className="pt-4 flex justify-end gap-2.5 border-t" style={{ borderColor: COLORS.hairline }}>
-        <button type="button" onClick={onClose}
-                className="px-4 py-2 text-[12px] font-semibold rounded-sm text-white"
-                style={{ background: COLORS.slate }}>
+      <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
+        <button type="button" onClick={onClose} className="px-4 py-2.5 text-xs font-semibold rounded-xl text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">
           Cancel
         </button>
-        <button type="submit" disabled={saving}
-                className="px-6 py-2 text-[12px] font-semibold rounded-sm text-white"
-                style={{ background: COLORS.ink, opacity: saving ? 0.6 : 1 }}>
+        <button type="submit" disabled={saving} className="px-6 py-2.5 text-xs font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] shadow-md shadow-indigo-600/20 transition-all">
           {saving ? "Saving..." : form.id ? "Update Record" : "Save Student"}
         </button>
       </div>
@@ -180,18 +170,15 @@ function StudentForm({ initial, classes, onSave, onClose }) {
   );
 }
 
-/* ---------------------------------------------------------
-   View detail
---------------------------------------------------------- */
 function StudentDetail({ student }) {
   const stats = student.attendance_stats || { total: 0, present: 0, absent: 0, late: 0, excused: 0, attendance_rate: 0 };
   const statCards = [
-    { label: "Total", value: stats.total },
-    { label: "Present", value: stats.present, tone: COLORS.sage },
-    { label: "Absent", value: stats.absent, tone: COLORS.coral },
-    { label: "Late", value: stats.late, tone: COLORS.amber },
-    { label: "Excused", value: stats.excused, tone: COLORS.slate },
-    { label: "Rate", value: `${stats.attendance_rate}%`, tone: COLORS.amber },
+    { label: "Total", value: stats.total, color: "text-slate-900" },
+    { label: "Present", value: stats.present, color: "text-emerald-600" },
+    { label: "Absent", value: stats.absent, color: "text-red-600" },
+    { label: "Late", value: stats.late, color: "text-amber-600" },
+    { label: "Excused", value: stats.excused, color: "text-slate-500" },
+    { label: "Rate", value: `${stats.attendance_rate}%`, color: "text-indigo-600" },
   ];
   const rows = [
     ["Student ID", student.student_id],
@@ -209,51 +196,51 @@ function StudentDetail({ student }) {
   ];
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between p-4" style={{ background: COLORS.paper, border: `1px solid ${COLORS.hairline}` }}>
+    <div className="space-y-5 font-sans">
+      <div className="flex items-center justify-between p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
         <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-serif font-bold" style={{ color: COLORS.ink }}>{student.name}</h3>
+          <div className="flex items-center gap-2.5">
+            <h3 className="text-lg font-display font-bold text-slate-900">{student.name}</h3>
             <StatusBadge status={student.status} />
           </div>
-          <p className="text-[12px]" style={{ color: COLORS.slate }}>{student.student_id || "No Student ID"}</p>
+          <p className="text-xs font-mono text-slate-500 mt-0.5">{student.student_id || "No Student ID"}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
         {statCards.map((s) => (
-          <div key={s.label} className="p-3 text-center" style={{ border: `1px solid ${COLORS.hairline}`, background: COLORS.card }}>
-            <p className="text-lg font-serif font-bold" style={{ color: s.tone || COLORS.ink }}>{s.value}</p>
-            <p className="text-[10px] mt-0.5" style={{ color: COLORS.slate }}>{s.label}</p>
+          <div key={s.label} className="p-3.5 text-center bg-slate-50/50 border border-slate-100 rounded-xl">
+            <p className={`text-xl font-display font-bold ${s.color}`}>{s.value}</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">{s.label}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 p-4 text-[12px]" style={{ border: `1px solid ${COLORS.hairline}`, background: COLORS.card }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 p-4 text-xs bg-white border border-slate-100 rounded-xl">
         {rows.map(([label, value]) => (
-          <div key={label} className="flex justify-between border-b py-1.5" style={{ borderColor: COLORS.hairline }}>
-            <span style={{ color: COLORS.slate }}>{label}</span>
-            <span className="font-semibold text-right" style={{ color: COLORS.ink }}>{value || "—"}</span>
+          <div key={label} className="flex justify-between border-b border-slate-100 py-1.5">
+            <span className="text-slate-500 font-medium">{label}</span>
+            <span className="font-semibold text-slate-900 text-right">{value || "—"}</span>
           </div>
         ))}
       </div>
 
       <div>
-        <h4 className="text-[11px] font-bold mb-2 uppercase tracking-wider" style={{ color: COLORS.slate }}>Recent Attendance Logs</h4>
+        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Recent Attendance Logs</h4>
         {student.recent_attendances?.length ? (
-          <div style={{ border: `1px solid ${COLORS.hairline}`, background: COLORS.card }}>
-            <table className="w-full text-[12px]" style={{ borderCollapse: "collapse" }}>
+          <div className="border border-slate-100 rounded-xl overflow-hidden">
+            <table className="w-full text-xs text-left">
               <thead>
-                <tr style={{ borderBottom: `1px solid ${COLORS.hairline}`, color: COLORS.slate }}>
-                  <th className="text-left px-4 py-2.5 font-normal">Date</th>
-                  <th className="text-left px-4 py-2.5 font-normal">Time</th>
-                  <th className="text-left px-4 py-2.5 font-normal">Subject</th>
-                  <th className="text-left px-4 py-2.5 font-normal">Status</th>
+                <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase bg-slate-50/50">
+                  <th className="px-4 py-2.5">Date</th>
+                  <th className="px-4 py-2.5">Time</th>
+                  <th className="px-4 py-2.5">Subject</th>
+                  <th className="px-4 py-2.5">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 text-slate-800">
                 {student.recent_attendances.map((a) => (
-                  <tr key={a.id} style={{ borderBottom: `1px solid ${COLORS.hairline}`, color: COLORS.ink }}>
+                  <tr key={a.id} className="hover:bg-slate-50/60">
                     <td className="px-4 py-2.5">{a.date}</td>
                     <td className="px-4 py-2.5">{a.time}</td>
                     <td className="px-4 py-2.5">{a.subject || "—"}</td>
@@ -264,16 +251,13 @@ function StudentDetail({ student }) {
             </table>
           </div>
         ) : (
-          <p className="text-[12px] py-3 text-center" style={{ color: COLORS.slate }}>No attendance history available</p>
+          <p className="text-xs py-4 text-center text-slate-400 font-medium">No attendance history available</p>
         )}
       </div>
     </div>
   );
 }
 
-/* ---------------------------------------------------------
-   Students page  (real data via GET /api/students/summary)
---------------------------------------------------------- */
 export default function Students() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -351,9 +335,9 @@ export default function Students() {
 
   if (error) {
     return (
-      <div style={{ background: COLORS.paper, minHeight: "100vh" }} className="font-sans">
-        <div className="max-w-6xl mx-auto px-6 py-16 text-center">
-          <p className="text-[15px]" style={{ color: COLORS.coral }}>Error: {error}</p>
+      <div className="min-h-screen bg-slate-50 font-sans p-8">
+        <div className="max-w-6xl mx-auto text-center py-16">
+          <p className="text-sm font-semibold text-red-600">Error: {error}</p>
         </div>
       </div>
     );
@@ -361,9 +345,9 @@ export default function Students() {
 
   if (!data) {
     return (
-      <div style={{ background: COLORS.paper, minHeight: "100vh" }} className="font-sans">
-        <div className="max-w-6xl mx-auto px-6 py-16 text-center">
-          <p className="text-[15px]" style={{ color: COLORS.slate }}>Loading students...</p>
+      <div className="min-h-screen bg-slate-50 font-sans p-8">
+        <div className="max-w-6xl mx-auto text-center py-16">
+          <p className="text-sm font-semibold text-slate-400">Loading student directory...</p>
         </div>
       </div>
     );
@@ -373,78 +357,78 @@ export default function Students() {
   const genderRatio = (data.gender_ratio || []).filter((g) => g.value > 0);
 
   return (
-    <div style={{ background: COLORS.paper, minHeight: "100vh" }} className="font-sans">
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <header className="flex items-end justify-between mb-8" style={{ borderBottom: `2px solid ${COLORS.ink}`, paddingBottom: "16px" }}>
-          <div>
-            <h1 className="font-serif text-[26px]" style={{ color: COLORS.ink }}>Students</h1>
-            <p className="text-[13px]" style={{ color: COLORS.slate }}>{data.total} total records</p>
-          </div>
-          <button
-            className="px-4 py-2 text-[13px] text-white"
-            style={{ background: COLORS.ink }}
-            onClick={openAdd}
-          >
-            Add Student
-          </button>
-        </header>
+    <div className="space-y-6 pb-12 font-sans">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-slate-900 tracking-tight">Student Directory</h1>
+          <p className="text-sm text-slate-500 font-medium mt-1">{data.total} active registered students</p>
+        </div>
+        <button
+          onClick={openAdd}
+          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-indigo-600/20 active:scale-[0.98] transition-all"
+        >
+          <UserPlus size={16} /> Add New Student
+        </button>
+      </div>
 
-        {msg && (
-          <div className="mb-4 p-3 text-[12px] flex items-center justify-between rounded-sm"
-               style={{ background: msg.type === "error" ? "#FBF3EF" : "#F0F5EE", color: msg.type === "error" ? COLORS.coral : COLORS.sage, border: `1px solid ${msg.type === "error" ? COLORS.coral : COLORS.sage}` }}>
-            <span>{msg.text}</span>
-            <button onClick={() => setMsg(null)} style={{ color: "inherit" }}>×</button>
-          </div>
-        )}
+      {msg && (
+        <div className={`p-3.5 rounded-xl text-xs font-semibold flex items-center justify-between border ${msg.type === "error" ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
+          <span>{msg.text}</span>
+          <button onClick={() => setMsg(null)} className="text-slate-400 hover:text-slate-600">×</button>
+        </div>
+      )}
 
-        <KpiRow>
-          <KPI label="Total Students" value={data.total} tone="ink" />
-          <KPI label="Active" value={data.active} sub={`${data.inactive} inactive`} tone="sage" />
-          <KPI label="New This Month" value={data.new_this_month} tone="amber" />
-          <KPI label="Avg Attendance" value={`${data.avg_attendance}%`} tone={data.avg_attendance < 80 ? "coral" : "sage"} />
-        </KpiRow>
+      <KpiRow>
+        <KPI label="Total Students" value={data.total} tone="ink" />
+        <KPI label="Active Roster" value={data.active} sub={`${data.inactive} inactive`} tone="sage" />
+        <KPI label="New This Month" value={data.new_this_month} tone="amber" />
+        <KPI label="Avg Attendance" value={`${data.avg_attendance}%`} tone={data.avg_attendance < 80 ? "coral" : "sage"} />
+      </KpiRow>
 
-        <ChartGrid>
-          <Panel title="Students by Grade">
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={gradeDistribution}>
-                <CartesianGrid stroke={COLORS.hairline} vertical={false} />
-                <XAxis dataKey="grade" tick={{ fontSize: 12, fill: COLORS.slate }} axisLine={{ stroke: COLORS.hairline }} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: COLORS.slate }} axisLine={false} tickLine={false} width={32} />
-                <Tooltip />
-                <Bar dataKey="students" fill={COLORS.ink} radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </Panel>
+      <ChartGrid>
+        <Panel title="Students by Grade">
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={gradeDistribution}>
+              <CartesianGrid stroke="#F1F5F9" vertical={false} />
+              <XAxis dataKey="grade" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} width={32} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Bar dataKey="students" fill="#4F46E5" radius={[6, 6, 0, 0]} barSize={24} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Panel>
 
-          <Panel title="Gender Ratio">
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie data={genderRatio} dataKey="value" nameKey="name" innerRadius={40} outerRadius={65} paddingAngle={2}>
-                  {genderRatio.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </Panel>
-        </ChartGrid>
+        <Panel title="Gender Ratio">
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie data={genderRatio} dataKey="value" nameKey="name" innerRadius={45} outerRadius={70} paddingAngle={3} strokeWidth={0}>
+                {genderRatio.map((_, i) => <Cell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />)}
+              </Pie>
+              <Tooltip contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </Panel>
+      </ChartGrid>
 
-        {/* Filter bar */}
-        <div className="flex gap-3 mb-3 items-center">
+      {/* Filter Toolbar */}
+      <div className="impeccable-card p-4 flex flex-col sm:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by name or ID..."
+            placeholder="Search by student name or ID..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="px-3 py-2 text-[13px] flex-1"
-            style={{ border: `1px solid ${COLORS.hairline}`, background: COLORS.card, color: COLORS.ink }}
+            className="w-full pl-10 pr-4 py-2.5 text-xs font-semibold text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none shadow-xs"
           />
+        </div>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <select
             value={gradeFilter}
             onChange={(e) => setGradeFilter(e.target.value)}
-            className="px-3 py-2 text-[13px]"
-            style={{ border: `1px solid ${COLORS.hairline}`, background: COLORS.card, color: COLORS.ink }}
+            className="px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none shadow-xs"
           >
             {grades.map((g) => (
               <option key={g} value={g}>{g === "all" ? "All grades" : `Grade ${g}`}</option>
@@ -453,61 +437,69 @@ export default function Students() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 text-[13px]"
-            style={{ border: `1px solid ${COLORS.hairline}`, background: COLORS.card, color: COLORS.ink }}
+            className="px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none shadow-xs"
           >
             <option value="all">All status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
         </div>
+      </div>
 
-        {/* Table */}
-        <div style={{ border: `1px solid ${COLORS.hairline}`, background: COLORS.card }}>
-          <table className="w-full text-[13px]" style={{ borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${COLORS.hairline}`, color: COLORS.slate }}>
-                <th className="text-left px-4 py-3 font-normal">ID</th>
-                <th className="text-left px-4 py-3 font-normal">Name</th>
-                <th className="text-left px-4 py-3 font-normal">Grade</th>
-                <th className="text-left px-4 py-3 font-normal">Guardian</th>
-                <th className="text-left px-4 py-3 font-normal">Contact</th>
-                <th className="text-left px-4 py-3 font-normal">Attendance</th>
-                <th className="text-left px-4 py-3 font-normal">Status</th>
-                <th className="text-left px-4 py-3 font-normal">Actions</th>
+      {/* Data Table */}
+      <div className="impeccable-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left">
+            <thead className="border-b border-slate-100 text-slate-400 font-semibold uppercase tracking-wider bg-slate-50/50">
+              <tr>
+                <th className="px-4 py-3">ID</th>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Grade</th>
+                <th className="px-4 py-3">Guardian</th>
+                <th className="px-4 py-3">Contact</th>
+                <th className="px-4 py-3">Attendance</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 text-slate-800">
               {filtered.map((s) => (
-                <tr key={s.id} style={{ borderBottom: `1px solid ${COLORS.hairline}`, color: COLORS.ink }}>
-                  <td className="px-4 py-3">{s.student_id || "—"}</td>
-                  <td className="px-4 py-3">{s.name}</td>
+                <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
+                  <td className="px-4 py-3 font-mono font-medium text-slate-500">{s.student_id || "—"}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-900">{s.name}</td>
                   <td className="px-4 py-3">{s.grade}{s.section}</td>
-                  <td className="px-4 py-3">{s.guardian || "—"}</td>
-                  <td className="px-4 py-3">{s.contact || "—"}</td>
+                  <td className="px-4 py-3 text-slate-600">{s.guardian || "—"}</td>
+                  <td className="px-4 py-3 text-slate-600">{s.contact || "—"}</td>
                   <td className="px-4 py-3"><AttendanceBadge value={s.attendance} /></td>
                   <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
-                  <td className="px-4 py-3">
-                    <button className="text-[12px] mr-3" style={{ color: COLORS.ink }} onClick={() => openView(s)}>View</button>
-                    <button className="text-[12px] mr-3" style={{ color: COLORS.slate }} onClick={() => openEdit(s)}>Edit</button>
-                    <button className="text-[12px]" style={{ color: COLORS.coral }} onClick={() => setDeleting(s)}>Delete</button>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors" onClick={() => openView(s)} title="View profile">
+                        <Eye size={15} />
+                      </button>
+                      <button className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors" onClick={() => openEdit(s)} title="Edit student">
+                        <Edit3 size={15} />
+                      </button>
+                      <button className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors" onClick={() => setDeleting(s)} title="Delete student">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center" style={{ color: COLORS.slate }}>
-                    No students match this search.
+                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400 font-medium">
+                    No students found matching current filters.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-
-        <p className="text-[12px] mt-3" style={{ color: COLORS.slate }}>
+        <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/30 text-xs font-semibold text-slate-400">
           Showing {filtered.length} of {students.length} students
-        </p>
+        </div>
       </div>
 
       {/* Modals */}
@@ -530,20 +522,20 @@ export default function Students() {
 
       {detailLoading && (
         <Modal title="Student Profile" onClose={() => setDetailLoading(false)} wide>
-          <div className="py-12 text-center" style={{ color: COLORS.slate }}>Loading profile details...</div>
+          <div className="py-12 text-center text-slate-400 font-medium">Loading profile details...</div>
         </Modal>
       )}
 
       {deleting && (
         <Modal title="Confirm Delete" onClose={() => setDeleting(null)}>
-          <p className="text-[13px]" style={{ color: COLORS.slate }}>
-            Are you sure you want to delete <b style={{ color: COLORS.ink }}>{deleting.name}</b>?
+          <p className="text-sm text-slate-600">
+            Are you sure you want to delete <b className="text-slate-900">{deleting.name}</b>? This action cannot be undone.
           </p>
-          <div className="mt-6 flex justify-end gap-2.5">
-            <button onClick={() => setDeleting(null)} className="px-4 py-2 text-[12px] font-semibold rounded-sm text-white" style={{ background: COLORS.slate }}>
+          <div className="mt-6 flex justify-end gap-3">
+            <button onClick={() => setDeleting(null)} className="px-4 py-2 text-xs font-semibold rounded-xl text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">
               Cancel
             </button>
-            <button onClick={confirmDelete} className="px-5 py-2 text-[12px] font-semibold rounded-sm text-white" style={{ background: COLORS.coral }}>
+            <button onClick={confirmDelete} className="px-5 py-2 text-xs font-semibold rounded-xl text-white bg-red-600 hover:bg-red-700 transition-colors">
               Delete Student
             </button>
           </div>

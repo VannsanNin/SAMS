@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import {
   Users, UserRound, ClipboardList, School, CalendarCheck, DollarSign,
-  Target, Inbox, TrendingUp, ClipboardPlus, UserPlus,
+  Target, Inbox, TrendingUp, ClipboardPlus, UserPlus, Calendar, ArrowUpRight
 } from 'lucide-react';
 
 const ICONS = {
@@ -19,20 +19,24 @@ const ICONS = {
   pending: Inbox,
 };
 
-const COLORS = ['#D98E2B', '#1E2A4A', '#7c8a9a', '#5b8c5a', '#c96f4a', '#6b7aa1'];
+const CHART_PALETTE = ['#4F46E5', '#F59E0B', '#10B981', '#0284C7', '#EF4444', '#8B5CF6'];
 
 function StatCard({ item }) {
   const Icon = ICONS[item.icon] || TrendingUp;
   const value = `${item.prefix ?? ''}${item.value}${item.suffix ?? ''}`;
   return (
-    <div className="bg-white border border-hairline border-[#D8D2C4] rounded-sm p-5 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-ledger-slate uppercase tracking-wider">{item.label}</h3>
-          <p className="text-3xl font-bold text-ink mt-2 tracking-tight truncate">{value}</p>
+    <div className="impeccable-card p-5 flex flex-col justify-between group">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{item.label}</span>
+        <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 group-hover:scale-105 transition-transform duration-200">
+          <Icon size={19} />
         </div>
-        <div className="p-3 rounded-sm bg-paper text-ochre border border-[#E4DECF] shrink-0">
-          <Icon size={20} />
+      </div>
+      <div className="mt-4">
+        <p className="text-3xl font-display font-bold text-slate-900 tracking-tight truncate">{value}</p>
+        <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-emerald-600">
+          <ArrowUpRight size={14} />
+          <span>Active status</span>
         </div>
       </div>
     </div>
@@ -41,35 +45,48 @@ function StatCard({ item }) {
 
 function ChartCard({ title, subtitle, children, className = '' }) {
   return (
-    <section className={`bg-white border border-[#D8D2C4] rounded-sm p-5 shadow-sm ${className}`}>
-      <h2 className="text-sm font-semibold text-ink tracking-tight">{title}</h2>
-      {subtitle && <p className="text-xs text-ledger-slate mt-0.5 mb-3">{subtitle}</p>}
-      <div className="mt-3">{children}</div>
+    <section className={`impeccable-card p-6 ${className}`}>
+      <div className="mb-4">
+        <h2 className="text-base font-display font-bold text-slate-900">{title}</h2>
+        {subtitle && <p className="text-xs text-slate-500 font-medium mt-0.5">{subtitle}</p>}
+      </div>
+      {children}
     </section>
   );
 }
 
 function ListCard({ title, subtitle = '', children }) {
   return (
-    <section className="bg-white border border-[#D8D2C4] rounded-sm p-5 shadow-sm">
-      <h2 className="text-sm font-semibold text-ink tracking-tight">{title}</h2>
-      {subtitle && <p className="text-xs text-ledger-slate mt-0.5">{subtitle}</p>}
-      <div className="mt-3">{children}</div>
+    <section className="impeccable-card p-6">
+      <div className="mb-4">
+        <h2 className="text-base font-display font-bold text-slate-900">{title}</h2>
+        {subtitle && <p className="text-xs text-slate-500 font-medium mt-0.5">{subtitle}</p>}
+      </div>
+      {children}
     </section>
   );
 }
 
+const tooltipStyle = {
+  backgroundColor: '#0F172A',
+  borderRadius: '0.75rem',
+  border: 'none',
+  color: '#F8FAFC',
+  fontSize: '12px',
+  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2)',
+};
+
 function EnrollmentChart({ data }) {
   return (
     <ChartCard title="Enrollment Trend" subtitle="Student enrollments by month">
-      <div className="h-60">
+      <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ece7db" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="enrollments" name="Enrollments" fill="#D98E2B" radius={[2, 2, 0, 0]} barSize={22} />
+            <Bar dataKey="enrollments" name="Enrollments" fill="#4F46E5" radius={[6, 6, 0, 0]} barSize={24} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -79,15 +96,15 @@ function EnrollmentChart({ data }) {
 
 function AttendanceTrendChart({ data }) {
   return (
-    <ChartCard title="Attendance Rate Trend" subtitle="Weekly attendance percentage">
-      <div className="h-60">
+    <ChartCard title="Attendance Rate" subtitle="Weekly rate percentage">
+      <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ece7db" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-            <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#6b7280' }} unit="%" axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+            <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748B' }} unit="%" axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Line type="monotone" dataKey="rate" name="Rate %" stroke="#1E2A4A" strokeWidth={2.5} dot={{ fill: '#D98E2B', r: 3 }} />
+            <Line type="monotone" dataKey="rate" name="Rate %" stroke="#10B981" strokeWidth={3} dot={{ fill: '#047857', r: 4 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -98,16 +115,16 @@ function AttendanceTrendChart({ data }) {
 function FeeCollectionChart({ data }) {
   return (
     <ChartCard title="Fee Collection vs Target" subtitle="Monthly collected vs target">
-      <div className="h-60">
+      <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ece7db" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
-            <Bar dataKey="target" name="Target" fill="#C9C2B2" radius={[2, 2, 0, 0]} barSize={18} />
-            <Bar dataKey="collected" name="Collected" fill="#1E2A4A" radius={[2, 2, 0, 0]} barSize={18} />
+            <Bar dataKey="target" name="Target" fill="#E2E8F0" radius={[4, 4, 0, 0]} barSize={18} />
+            <Bar dataKey="collected" name="Collected" fill="#F59E0B" radius={[4, 4, 0, 0]} barSize={18} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -121,11 +138,11 @@ function StudentsByClassChart({ data }) {
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ece7db" horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="label" width={90} tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" horizontal={false} />
+            <XAxis type="number" tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="label" width={90} tick={{ fontSize: 11, fill: '#334155' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="value" name="Students" fill="#D98E2B" radius={[0, 2, 2, 0]} barSize={16} />
+            <Bar dataKey="value" name="Students" fill="#0284C7" radius={[0, 6, 6, 0]} barSize={18} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -137,18 +154,18 @@ function GenderRatioChart({ data }) {
   return (
     <ChartCard title="Gender Ratio" subtitle="Male vs female students">
       <div className="h-64 flex flex-col items-center justify-center">
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={180}>
           <PieChart>
-            <Pie data={data} dataKey="value" nameKey="label" innerRadius={55} outerRadius={80} paddingAngle={3} strokeWidth={0}>
-              {data.map((d, i) => <Cell key={d.label} fill={COLORS[i % COLORS.length]} />)}
+            <Pie data={data} dataKey="value" nameKey="label" innerRadius={55} outerRadius={80} paddingAngle={4} strokeWidth={0}>
+              {data.map((d, i) => <Cell key={d.label} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />)}
             </Pie>
             <Tooltip contentStyle={tooltipStyle} />
           </PieChart>
         </ResponsiveContainer>
-        <div className="flex gap-4 text-xs font-medium text-ink">
-          {data.map((d) => (
+        <div className="flex gap-4 text-xs font-semibold text-slate-700 mt-2">
+          {data.map((d, i) => (
             <span key={d.label} className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS[data.indexOf(d) % COLORS.length] }} />
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_PALETTE[i % CHART_PALETTE.length] }} />
               {d.label} · <b>{d.value}</b>
             </span>
           ))}
@@ -160,17 +177,17 @@ function GenderRatioChart({ data }) {
 
 function DeptRatioChart({ data }) {
   return (
-    <ChartCard title="Teacher : Student by Department" subtitle="Staffing load per department">
+    <ChartCard title="Teacher : Student Load" subtitle="Staffing per department">
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ece7db" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} interval={0} />
-            <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748B' }} axisLine={false} tickLine={false} interval={0} />
+            <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
-            <Bar dataKey="teachers" name="Teachers" fill="#D98E2B" radius={[2, 2, 0, 0]} barSize={12} />
-            <Bar dataKey="students" name="Students" fill="#1E2A4A" radius={[2, 2, 0, 0]} barSize={12} />
+            <Bar dataKey="teachers" name="Teachers" fill="#F59E0B" radius={[4, 4, 0, 0]} barSize={14} />
+            <Bar dataKey="students" name="Students" fill="#4F46E5" radius={[4, 4, 0, 0]} barSize={14} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -178,27 +195,23 @@ function DeptRatioChart({ data }) {
   );
 }
 
-const tooltipStyle = {
-  backgroundColor: '#1E2A4A', borderRadius: '4px', border: 'none', color: '#faf8f3', fontSize: '12px',
-};
-
 function GenericTable({ columns, rows, empty = 'No data available' }) {
-  if (!rows.length) return <p className="text-ledger-slate text-sm text-center py-6">{empty}</p>;
+  if (!rows.length) return <p className="text-slate-400 text-sm text-center py-6 font-medium">{empty}</p>;
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-xs">
-        <thead className="border-b border-[#E4DECF] text-ledger-slate uppercase tracking-wider">
+      <table className="w-full text-xs text-left">
+        <thead className="border-b border-slate-100 text-slate-400 font-semibold uppercase tracking-wider bg-slate-50/50">
           <tr>
             {columns.map((c) => (
-              <th key={c.key} className={`p-2.5 font-semibold text-left ${c.align === 'right' ? 'text-right' : ''}`}>{c.label}</th>
+              <th key={c.key} className={`px-4 py-3 ${c.align === 'right' ? 'text-right' : ''}`}>{c.label}</th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#F0ECDF] text-ink">
+        <tbody className="divide-y divide-slate-100 text-slate-800">
           {rows.map((row, i) => (
-            <tr key={i} className="hover:bg-paper">
+            <tr key={i} className="hover:bg-slate-50/70 transition-colors">
               {columns.map((c) => (
-                <td key={c.key} className={`p-2.5 ${c.align === 'right' ? 'text-right font-semibold' : ''}`}>
+                <td key={c.key} className={`px-4 py-3 ${c.align === 'right' ? 'text-right font-semibold text-slate-900' : ''}`}>
                   {c.render ? c.render(row) : row[c.key]}
                 </td>
               ))}
@@ -216,29 +229,39 @@ export default function AdminDashboard({ data }) {
   const l = data.lists || {};
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E4DECF]">
+    <div className="space-y-6 pb-12 font-sans">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
         <div>
-          <h1 className="text-2xl font-display font-bold text-ink tracking-tight">Admin Dashboard</h1>
-          <p className="text-xs text-ledger-slate font-medium mt-0.5">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-slate-900 tracking-tight">Admin Overview</h1>
+          <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-2">
+            <Calendar size={15} className="text-indigo-600" />
             {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Link to="/mark-attendance" className="inline-flex items-center gap-2 bg-ink text-paper font-semibold text-xs px-4 py-2.5 rounded-sm transition">
-            <ClipboardPlus size={15} /> Take Attendance
+        <div className="flex items-center gap-3">
+          <Link
+            to="/mark-attendance"
+            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-indigo-600/20 active:scale-[0.98] transition-all"
+          >
+            <ClipboardPlus size={16} /> Take Attendance
           </Link>
-          <Link to="/users" className="inline-flex items-center gap-2 border border-ink text-ink font-semibold text-xs px-4 py-2.5 rounded-sm transition">
-            <UserPlus size={15} /> Add Student
+          <Link
+            to="/users"
+            className="inline-flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-all"
+          >
+            <UserPlus size={16} /> Add Student
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         {kpis.map((k, i) => <StatCard key={i} item={k} />)}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      {/* Chart Panels Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-5"><EnrollmentChart data={g.enrollment_trend || []} /></div>
         <div className="lg:col-span-3"><AttendanceTrendChart data={g.attendance_trend || []} /></div>
         <div className="lg:col-span-4"><FeeCollectionChart data={g.fee_collection || []} /></div>
@@ -247,8 +270,9 @@ export default function AdminDashboard({ data }) {
         <div className="lg:col-span-3"><GenderRatioChart data={g.gender_ratio || []} /></div>
         <div className="lg:col-span-4"><DeptRatioChart data={g.teacher_student_by_dept || []} /></div>
 
+        {/* Action Tables & Lists */}
         <div className="lg:col-span-7">
-          <ListCard title="Recent Admissions" subtitle="Newly enrolled students">
+          <ListCard title="Recent Admissions" subtitle="Newly enrolled students in current term">
             <GenericTable
               columns={[
                 { key: 'name', label: 'Student' },
@@ -263,23 +287,23 @@ export default function AdminDashboard({ data }) {
         <div className="lg:col-span-5">
           <ListCard title="Upcoming Events & Holidays">
             {l.upcoming_events?.length ? (
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {l.upcoming_events.map((e) => (
-                  <li key={e.id} className="flex items-center justify-between border border-[#E4DECF] rounded-sm p-3">
+                  <li key={e.id} className="flex items-center justify-between border border-slate-100 rounded-xl p-3.5 bg-slate-50/50 hover:bg-white transition-all">
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-ink truncate">{e.title}</p>
-                      <p className="text-[11px] text-ledger-slate truncate">{e.type} · {e.location || '—'}</p>
+                      <p className="text-xs font-semibold text-slate-900 truncate">{e.title}</p>
+                      <p className="text-[11px] text-slate-500 font-medium truncate">{e.type} · {e.location || '—'}</p>
                     </div>
-                    <span className="text-[11px] font-semibold text-ochre pl-2 whitespace-nowrap">{e.date}</span>
+                    <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full whitespace-nowrap">{e.date}</span>
                   </li>
                 ))}
               </ul>
-            ) : <p className="text-ledger-slate text-sm text-center py-6">No upcoming events</p>}
+            ) : <p className="text-slate-400 text-sm text-center py-6 font-medium">No upcoming events</p>}
           </ListCard>
         </div>
 
         <div className="lg:col-span-4">
-          <ListCard title="Low-Attendance Students" subtitle="Most absences (30 days)">
+          <ListCard title="Low-Attendance Alert" subtitle="Most absences over past 30 days">
             <GenericTable
               columns={[
                 { key: 'name', label: 'Student' },

@@ -15,22 +15,34 @@ class AttendanceController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->get('per_page', 15);
+        $query = $this->applyTeacherScope(Attendance::query(), $request->user());
 
-        return $this->applyFilters(Attendance::query(), $request)
+        return $this->applyFilters($query, $request)
             ->with('student', 'schedule.subject', 'staff')
             ->orderByDesc('date')
             ->paginate($perPage);
     }
 
-    public function filters()
+    public function filters(Request $request)
     {
+        $teacherClassIds = $this->teacherClassIds($request->user());
+        $students = Student::query();
+        $classes = SchoolClass::query();
+        $schedules = Schedule::with('subject', 'class')->orderBy('day');
+        if ($request->user()?->isTeacher()) {
+            $students->whereIn('class_id', $teacherClassIds);
+            $classes->whereIn('id', $teacherClassIds);
+            $schedules->where(function ($q) use ($request, $teacherClassIds) {
+                $q->where('teacher_id', $request->user()->teacher_id)->orWhereIn('class_id', $teacherClassIds);
+            });
+        }
+
         return [
             'statuses' => ['present', 'absent', 'late', 'excused'],
-            'students' => Student::orderBy('name')->get(['id', 'name']),
+            'students' => $students->orderBy('name')->get(['id', 'name']),
             'staff' => Staff::orderBy('name')->get(['id', 'name']),
-            'classes' => SchoolClass::orderBy('class_name')->get(['id', 'class_name']),
-            'schedules' => Schedule::with('subject', 'class')
-                ->orderBy('day')
+            'classes' => $classes->orderBy('class_name')->get(['id', 'class_name']),
+            'schedules' => $schedules
                 ->get()
                 ->map(fn ($s) => [
                     'id' => $s->id,
@@ -45,13 +57,15 @@ class AttendanceController extends Controller
     {
         $data = $request->validate($this->rules());
         abort_unless($this->canManageSchedule($request->user(), (int) $data['schedule_id']), 403);
+        abort_unless($this->studentBelongsToSchedule((int) $data['student_id'], (int) $data['schedule_id']), 422);
         $attendance = Attendance::create($data);
 
-        return $this->show($attendance);
+        return $this->show($request, $attendance);
     }
 
-    public function show(Attendance $attendance)
+    public function show(Request $request, Attendance $attendance)
     {
+        abort_unless($this->canViewAttendance($request->user(), $attendance), 403);
         return $attendance->load('student', 'schedule.subject', 'schedule.class', 'staff');
     }
 
@@ -68,13 +82,16 @@ class AttendanceController extends Controller
 
         $scheduleId = (int) ($data['schedule_id'] ?? $attendance->schedule_id);
         abort_unless($this->canManageSchedule($request->user(), $scheduleId), 403);
+        if (isset($data['student_id'])) {
+            abort_unless($this->studentBelongsToSchedule((int) $data['student_id'], $scheduleId), 422);
+        }
 
         $attendance->update($data);
 
-        return $this->show($attendance);
+        return $this->show($request, $attendance);
     }
 
-    public function destroy(Attendance $attendance)
+    public function destroy(Request $request, Attendance $attendance)
     {
         abort_unless($this->canManageSchedule($request->user(), (int) $attendance->schedule_id), 403);
         $attendance->delete();
@@ -96,6 +113,7 @@ class AttendanceController extends Controller
 
         $attendances = [];
         foreach ($data['records'] as $record) {
+            abort_unless($this->studentBelongsToSchedule((int) $record['student_id'], (int) $data['schedule_id']), 422);
             $attendances[] = Attendance::updateOrCreate(
                 [
                     'student_id' => $record['student_id'],
@@ -114,7 +132,7 @@ class AttendanceController extends Controller
 
     public function export(Request $request)
     {
-        $attendances = $this->applyFilters(Attendance::query(), $request)
+        $attendances = $this->applyFilters($this->applyTeacherScope(Attendance::query(), $request->user()), $request)
             ->with('student', 'schedule.subject', 'schedule.class', 'staff')
             ->orderByDesc('date')
             ->get();
@@ -152,7 +170,11 @@ class AttendanceController extends Controller
 
     private function canManageSchedule(?\App\Models\User $user, int $scheduleId): bool
     {
-        if (! $user || $user->isAdmin()) {
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->isAdmin() || $user->isPrincipal()) {
             return (bool) $user;
         }
 
@@ -163,6 +185,53 @@ class AttendanceController extends Controller
         }
 
         return false;
+    }
+
+    private function studentBelongsToSchedule(int $studentId, int $scheduleId): bool
+    {
+        $schedule = Schedule::find($scheduleId);
+        return $schedule && Student::whereKey($studentId)->where('class_id', $schedule->class_id)->exists();
+    }
+
+    private function canViewAttendance(?\App\Models\User $user, Attendance $attendance): bool
+    {
+        if (! $user || $user->isAdmin() || $user->isPrincipal()) {
+            return (bool) $user;
+        }
+
+        if (! $user->isTeacher() || ! $user->teacher_id) {
+            return false;
+        }
+
+        $schedule = $attendance->schedule;
+        return $schedule && (
+            (int) $schedule->teacher_id === (int) $user->teacher_id
+            || in_array((int) $schedule->class_id, $this->teacherClassIds($user), true)
+        );
+    }
+
+    private function applyTeacherScope($query, $user)
+    {
+        if (! $user || ! $user->isTeacher()) {
+            return $query;
+        }
+
+        $classIds = $this->teacherClassIds($user);
+        return $query->whereHas('schedule', function ($scheduleQuery) use ($user, $classIds) {
+            $scheduleQuery->where('teacher_id', $user->teacher_id)->orWhereIn('class_id', $classIds);
+        });
+    }
+
+    private function teacherClassIds($user): array
+    {
+        $teacher = $user?->teacher_id ? \App\Models\Teacher::find($user->teacher_id) : null;
+        if (! $teacher) {
+            return [];
+        }
+
+        return $teacher->assignedClasses()->pluck('classes.id')
+            ->merge($teacher->classes()->pluck('id'))
+            ->unique()->map(fn ($id) => (int) $id)->all();
     }
 
     private function applyFilters($query, Request $request)

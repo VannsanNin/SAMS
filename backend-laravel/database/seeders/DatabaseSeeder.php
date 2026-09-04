@@ -63,6 +63,8 @@ class DatabaseSeeder extends Seeder
             foreach (['A', 'B'] as $section) {
                 $classList[] = SchoolClass::create([
                     'class_name' => "{$grade}-{$section}",
+                    'grade_level' => $grade,
+                    'education_level' => $grade <= 6 ? 'primary' : ($grade <= 9 ? 'lower_secondary' : 'upper_secondary'),
                     'teacher_id' => $teacher->id,
                     'academic_year' => '2025-2026',
                     'department' => $departmentsCycle[($grade + ($section === 'B' ? 1 : 0)) % 3],

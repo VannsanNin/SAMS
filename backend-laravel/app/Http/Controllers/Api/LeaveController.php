@@ -94,7 +94,7 @@ class LeaveController extends Controller
         $data = $request->validate($rules);
         $leave->update($data);
 
-        return $this->show($leave);
+        return $this->show($request, $leave);
     }
 
     public function destroy(Leave $leave)

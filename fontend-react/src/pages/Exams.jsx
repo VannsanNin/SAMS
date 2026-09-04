@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { PageShell, KPI, KpiRow, Badge, FilterBar, TextInput, Select, Table, RowAction } from "../components/shared";
 
 const EXAMS = [

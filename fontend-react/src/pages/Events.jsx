@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarDays, Plus, SquarePen, Trash2, Search, Users } from 'lucide-react';
+import { CalendarDays, Plus, Trash2, Search } from 'lucide-react';
 import { apiFetch } from '../api';
 import Pagination from '../components/Pagination';
 import Modal from '../components/Modal';
@@ -67,7 +67,6 @@ export default function Events() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  const [viewing, setViewing] = useState(null);
   const [msg, setMsg] = useState(null);
 
   const load = useCallback(async () => {

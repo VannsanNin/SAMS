@@ -13,7 +13,7 @@ class Student extends Person
 
     protected $fillable = [
         'student_id', 'name', 'gender', 'dob', 'phone', 'email', 'address',
-        'class_id', 'parent_name', 'parent_phone', 'guardian_id', 'image',
+        'class_id', 'grade_level', 'education_level', 'parent_name', 'parent_phone', 'guardian_id', 'image',
         'department', 'major', 'academic_year', 'semester',
         'enrollment_date', 'status',
     ];
@@ -27,6 +27,21 @@ class Student extends Person
             }
             if (empty($student->status)) {
                 $student->status = 'active';
+            }
+        });
+
+        static::created(function (Student $student) {
+            if ($student->academic_year && $student->class_id) {
+                $student->enrollments()->firstOrCreate(
+                    ['academic_year' => $student->academic_year],
+                    [
+                        'class_id' => $student->class_id,
+                        'grade_level' => $student->grade_level ?? $student->class?->grade_level,
+                        'enrollment_date' => $student->enrollment_date,
+                        'status' => $student->status ?: 'active',
+                        'promotion_status' => 'pending',
+                    ]
+                );
             }
         });
     }
@@ -78,6 +93,11 @@ class Student extends Person
     public function class()
     {
         return $this->belongsTo(SchoolClass::class, 'class_id');
+    }
+
+    public function enrollments()
+    {
+        return $this->hasMany(StudentEnrollment::class);
     }
 
     public function guardian()

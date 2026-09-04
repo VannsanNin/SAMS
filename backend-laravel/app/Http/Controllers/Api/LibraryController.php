@@ -32,7 +32,7 @@ class LibraryController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'title' => 'required|string|max:255',
             'isbn' => 'nullable|string|unique:library_books,isbn',
             'author' => 'required|string|max:255',
@@ -45,7 +45,6 @@ class LibraryController extends Controller
             'shelf_location' => 'nullable|string',
         ]);
 
-        $data = $request->all();
         $data['available_copies'] = $request->total_copies;
 
         $book = LibraryBook::create($data);
@@ -59,7 +58,26 @@ class LibraryController extends Controller
 
     public function update(Request $request, LibraryBook $book)
     {
-        $book->update($request->all());
+        $data = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'isbn' => 'nullable|string|unique:library_books,isbn,' . $book->id,
+            'author' => 'sometimes|string|max:255',
+            'publisher' => 'nullable|string',
+            'category' => 'sometimes|string',
+            'total_copies' => 'sometimes|integer|min:1',
+            'price' => 'nullable|numeric|min:0',
+            'published_date' => 'nullable|date',
+            'description' => 'nullable|string',
+            'shelf_location' => 'nullable|string',
+        ]);
+
+        if (array_key_exists('total_copies', $data)) {
+            $borrowed = max(0, (int) $book->total_copies - (int) $book->available_copies);
+            abort_unless($data['total_copies'] >= $borrowed, 422, 'Total copies cannot be less than borrowed copies.');
+            $data['available_copies'] = $data['total_copies'] - $borrowed;
+        }
+
+        $book->update($data);
         return response()->json($book);
     }
 

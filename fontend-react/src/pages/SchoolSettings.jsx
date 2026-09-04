@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Settings, Plus, SquarePen, Trash2, Calendar, Building2, DoorOpen, Landmark } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings, Plus, Trash2, Calendar, Building2, DoorOpen, Landmark } from 'lucide-react';
 import { apiFetch } from '../api';
 import Modal from '../components/Modal';
 
@@ -16,7 +16,7 @@ function AcademicYearForm({ initial, onSave, onClose }) {
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const submit = async (e) => {
     e.preventDefault(); setSaving(true);
-    try { const r = await apiFetch(`${API}/school/academic-years`, { method: 'POST', body: JSON.stringify(form) }); if (r.ok) onSave(); } catch (e) {} finally { setSaving(false); }
+    try { const r = await apiFetch(`${API}/school/academic-years${form.id ? `/${form.id}` : ''}`, { method: form.id ? 'PUT' : 'POST', body: JSON.stringify(form) }); if (r.ok) onSave(); } catch { setSaving(false); } finally { setSaving(false); }
   };
   return (
     <form onSubmit={submit} className="space-y-4">
@@ -36,13 +36,13 @@ function DepartmentForm({ initial, onSave, onClose }) {
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const submit = async (e) => {
     e.preventDefault(); setSaving(true);
-    try { const r = await apiFetch(`${API}/school/departments`, { method: 'POST', body: JSON.stringify(form) }); if (r.ok) onSave(); } catch (e) {} finally { setSaving(false); }
+    try { const r = await apiFetch(`${API}/school/departments${form.id ? `/${form.id}` : ''}`, { method: form.id ? 'PUT' : 'POST', body: JSON.stringify(form) }); if (r.ok) onSave(); } catch { setSaving(false); } finally { setSaving(false); }
   };
   return (
     <form onSubmit={submit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <Field label="Name" required><input className={inputCls} value={form.name || ''} onChange={set('name')} required /></Field>
-        <Field label="Code"><input className={inputCls} value={form.code || ''} onChange={set('code')} /></Field>
+        <Field label="Code" required><input className={inputCls} value={form.code || ''} onChange={set('code')} required /></Field>
       </div>
       <Field label="Description"><textarea className={inputCls} rows={2} value={form.description || ''} onChange={set('description')} /></Field>
       <div className="flex justify-end gap-3"><button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl border text-xs font-semibold">Cancel</button><button type="submit" disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl text-xs transition">{saving ? 'Saving...' : 'Save'}</button></div>
@@ -56,17 +56,17 @@ function BuildingForm({ initial, onSave, onClose }) {
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const submit = async (e) => {
     e.preventDefault(); setSaving(true);
-    try { const r = await apiFetch(`${API}/school/buildings`, { method: 'POST', body: JSON.stringify(form) }); if (r.ok) onSave(); } catch (e) {} finally { setSaving(false); }
+    try { const r = await apiFetch(`${API}/school/buildings${form.id ? `/${form.id}` : ''}`, { method: form.id ? 'PUT' : 'POST', body: JSON.stringify(form) }); if (r.ok) onSave(); } catch { setSaving(false); } finally { setSaving(false); }
   };
   return (
     <form onSubmit={submit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <Field label="Name" required><input className={inputCls} value={form.name || ''} onChange={set('name')} required /></Field>
-        <Field label="Code"><input className={inputCls} value={form.code || ''} onChange={set('code')} /></Field>
-        <Field label="Floors"><input type="number" className={inputCls} value={form.floors || 1} onChange={set('floors')} min="1" /></Field>
+        <Field label="Code" required><input className={inputCls} value={form.code || ''} onChange={set('code')} required /></Field>
+        <Field label="Floors"><input type="number" className={inputCls} value={form.total_floors || 1} onChange={set('total_floors')} min="1" /></Field>
         <Field label="Status">
-          <select className={inputCls} value={form.status || 'active'} onChange={set('status')}>
-            <option value="active">Active</option><option value="maintenance">Maintenance</option><option value="inactive">Inactive</option>
+          <select className={inputCls} value={form.is_active === false ? 'inactive' : 'active'} onChange={e => set('is_active')({ target: { value: e.target.value === 'active' } })}>
+            <option value="active">Active</option><option value="inactive">Inactive</option>
           </select>
         </Field>
       </div>
@@ -82,13 +82,13 @@ function RoomForm({ initial, buildings, onSave, onClose }) {
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const submit = async (e) => {
     e.preventDefault(); setSaving(true);
-    try { const r = await apiFetch(`${API}/school/rooms`, { method: 'POST', body: JSON.stringify({ ...form, capacity: +form.capacity || 0 }) }); if (r.ok) onSave(); } catch (e) {} finally { setSaving(false); }
+    try { const r = await apiFetch(`${API}/school/rooms${form.id ? `/${form.id}` : ''}`, { method: form.id ? 'PUT' : 'POST', body: JSON.stringify({ ...form, capacity: +form.capacity || 0 }) }); if (r.ok) onSave(); } catch { setSaving(false); } finally { setSaving(false); }
   };
   return (
     <form onSubmit={submit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Room Number" required><input className={inputCls} value={form.room_number || ''} onChange={set('room_number')} required /></Field>
-        <Field label="Name"><input className={inputCls} value={form.name || ''} onChange={set('name')} /></Field>
+        <Field label="Room Number" required><input className={inputCls} value={form.number || ''} onChange={set('number')} required /></Field>
+        <Field label="Name" required><input className={inputCls} value={form.name || ''} onChange={set('name')} required /></Field>
         <Field label="Building" required>
           <select className={inputCls} value={form.building_id || ''} onChange={set('building_id')} required>
             <option value="">Select...</option>
@@ -97,7 +97,7 @@ function RoomForm({ initial, buildings, onSave, onClose }) {
         </Field>
         <Field label="Type">
           <select className={inputCls} value={form.type || 'classroom'} onChange={set('type')}>
-            {['classroom', 'lab', 'library', 'office', 'auditorium', 'sports', 'other'].map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+            {['classroom', 'lab', 'office', 'library', 'hall', 'other'].map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
           </select>
         </Field>
         <Field label="Capacity"><input type="number" className={inputCls} value={form.capacity || ''} onChange={set('capacity')} min="0" /></Field>
@@ -119,10 +119,10 @@ export default function SchoolSettings() {
   const [deleting, setDeleting] = useState(null);
   const [msg, setMsg] = useState(null);
 
-  const loadYears = async () => { const r = await apiFetch(`${API}/school/academic-years`); if (r.ok) setYears((await r.json()).data || await r.json()); };
-  const loadDepts = async () => { const r = await apiFetch(`${API}/school/departments`); if (r.ok) setDepartments((await r.json()).data || await r.json()); };
-  const loadBuildings = async () => { const r = await apiFetch(`${API}/school/buildings`); if (r.ok) setBuildings((await r.json()).data || await r.json()); };
-  const loadRooms = async () => { const r = await apiFetch(`${API}/school/rooms`); if (r.ok) setRooms((await r.json()).data || await r.json()); };
+  const loadYears = async () => { const r = await apiFetch(`${API}/school/academic-years`); if (r.ok) { const d = await r.json(); setYears(d.data || d || []); } };
+  const loadDepts = async () => { const r = await apiFetch(`${API}/school/departments`); if (r.ok) { const d = await r.json(); setDepartments(d.data || d || []); } };
+  const loadBuildings = async () => { const r = await apiFetch(`${API}/school/buildings`); if (r.ok) { const d = await r.json(); setBuildings(d.data || d || []); } };
+  const loadRooms = async () => { const r = await apiFetch(`${API}/school/rooms`); if (r.ok) { const d = await r.json(); setRooms(d.data || d || []); } };
 
   useEffect(() => { loadYears(); loadDepts(); loadBuildings(); loadRooms(); }, []);
 
@@ -174,14 +174,14 @@ export default function SchoolSettings() {
         <div><h3 className="font-bold text-slate-900">{d.name}</h3>{d.code && <p className="text-[10px] text-slate-500">Code: {d.code}</p>}{d.description && <p className="text-xs text-slate-600 mt-1">{d.description}</p>}</div>
       ))}
       {tab === 'buildings' && renderList(buildings, b => (
-        <div><h3 className="font-bold text-slate-900">{b.name}</h3><p className="text-[10px] text-slate-500">{b.floors} floor(s) • <span className={`font-semibold ${b.status === 'active' ? 'text-emerald-600' : 'text-amber-600'}`}>{b.status}</span></p>{b.address && <p className="text-xs text-slate-600 mt-1">{b.address}</p>}</div>
+        <div><h3 className="font-bold text-slate-900">{b.name}</h3><p className="text-[10px] text-slate-500">{b.total_floors} floor(s) • <span className={`font-semibold ${b.is_active ? 'text-emerald-600' : 'text-amber-600'}`}>{b.is_active ? 'active' : 'inactive'}</span></p>{b.address && <p className="text-xs text-slate-600 mt-1">{b.address}</p>}</div>
       ))}
       {tab === 'rooms' && renderList(rooms, r => (
-        <div><h3 className="font-bold text-slate-900">{r.room_number} {r.name && `- ${r.name}`}</h3><p className="text-[10px] text-slate-500 capitalize">{r.type} • Cap: {r.capacity || '—'} • Floor {r.floor || '—'}</p></div>
+        <div><h3 className="font-bold text-slate-900">{r.number} {r.name && `- ${r.name}`}</h3><p className="text-[10px] text-slate-500 capitalize">{r.type} • Cap: {r.capacity || '—'} • Floor {r.floor || '—'}</p></div>
       ))}
 
       {formOpen && <Modal title={`${editing ? 'Edit' : 'New'} ${tab.slice(0, -1).replace('ie', 'y')}`} onClose={() => { setFormOpen(false); setEditing(null); }} icon={Settings} wide><FormComponent initial={editing || {}} {...(formProps[tab] || {})} onSave={handleSaved} onClose={() => { setFormOpen(false); setEditing(null); }} /></Modal>}
-      {deleting && <Modal title="Confirm Delete" onClose={() => setDeleting(null)} icon={Trash2}><p className="text-sm text-slate-600">Delete <strong>{deleting.name || deleting.room_number || ''}</strong>?</p><div className="flex justify-end gap-3 mt-6"><button onClick={() => setDeleting(null)} className="px-4 py-2 rounded-xl border text-xs font-semibold">Cancel</button><button onClick={confirmDelete} className="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-5 py-2 rounded-xl text-xs transition">Delete</button></div></Modal>}
+      {deleting && <Modal title="Confirm Delete" onClose={() => setDeleting(null)} icon={Trash2}><p className="text-sm text-slate-600">Delete <strong>{deleting.name || deleting.number || ''}</strong>?</p><div className="flex justify-end gap-3 mt-6"><button onClick={() => setDeleting(null)} className="px-4 py-2 rounded-xl border text-xs font-semibold">Cancel</button><button onClick={confirmDelete} className="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-5 py-2 rounded-xl text-xs transition">Delete</button></div></Modal>}
     </div>
   );
 }

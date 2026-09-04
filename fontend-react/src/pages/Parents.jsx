@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { COLORS, PageShell, KPI, KpiRow, Badge, FilterBar, TextInput, Select, Table, RowAction } from "../components/shared";
+import { useMemo, useState } from "react";
+import { PageShell, KPI, KpiRow, Badge, FilterBar, TextInput, Select, Table, RowAction } from "../components/shared";
 
 const PARENTS = [
   { id: "P-001", name: "Vibol Chan", children: ["Sopheak Chan (10B)"], contact: "012 345 678", lastLogin: "2026-08-30", status: "active" },

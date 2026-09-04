@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { COLORS, PageShell, KPI, KpiRow, Badge, FilterBar, TextInput, Select, Table, RowAction } from "../components/shared";
+import { useMemo, useState } from "react";
+import { PageShell, KPI, KpiRow, Badge, FilterBar, TextInput, Select, Table, RowAction } from "../components/shared";
 
 const CLASSES = [
   { id: "10B", homeroom: "Sokun Meas", students: 34, room: "204", avg: 76 },

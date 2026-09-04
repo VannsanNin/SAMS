@@ -9,6 +9,7 @@ use App\Models\FeePayment;
 use App\Models\Scholarship;
 use App\Models\ScholarshipApplication;
 use App\Models\Student;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -29,7 +30,7 @@ class FeeController extends Controller
 
     public function storeFeeStructure(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:registration,tuition,exam,library,transport,uniform,activity,lab,other',
             'amount' => 'required|numeric|min:0',
@@ -40,13 +41,24 @@ class FeeController extends Controller
             'is_mandatory' => 'nullable|boolean',
         ]);
 
-        $fee = FeeStructure::create($request->all());
+        $fee = FeeStructure::create($data);
         return response()->json($fee, 201);
     }
 
     public function updateFeeStructure(Request $request, FeeStructure $feeStructure)
     {
-        $feeStructure->update($request->all());
+        $data = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'type' => 'sometimes|in:registration,tuition,exam,library,transport,uniform,activity,lab,other',
+            'amount' => 'sometimes|numeric|min:0',
+            'class_id' => 'nullable|exists:classes,id',
+            'academic_year' => 'sometimes|string',
+            'semester' => 'nullable|string',
+            'description' => 'nullable|string',
+            'is_mandatory' => 'sometimes|boolean',
+            'is_active' => 'sometimes|boolean',
+        ]);
+        $feeStructure->update($data);
         return response()->json($feeStructure);
     }
 
@@ -71,7 +83,7 @@ class FeeController extends Controller
 
     public function storeInvoice(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'student_id' => 'required|exists:students,id',
             'fee_structure_id' => 'required|exists:fee_structures,id',
             'amount' => 'required|numeric|min:0',
@@ -80,16 +92,20 @@ class FeeController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $amount = $request->amount - ($request->discount ?? 0);
+        if ((float) ($data['discount'] ?? 0) > (float) $data['amount']) {
+            return response()->json(['message' => 'Discount cannot exceed invoice amount.'], 422);
+        }
+
+        $amount = $data['amount'] - ($data['discount'] ?? 0);
         $invoice = FeeInvoice::create([
-            'student_id' => $request->student_id,
-            'fee_structure_id' => $request->fee_structure_id,
-            'amount' => $request->amount,
-            'discount' => $request->discount ?? 0,
+            'student_id' => $data['student_id'],
+            'fee_structure_id' => $data['fee_structure_id'],
+            'amount' => $data['amount'],
+            'discount' => $data['discount'] ?? 0,
             'paid_amount' => 0,
             'balance' => $amount,
-            'due_date' => $request->due_date,
-            'notes' => $request->notes,
+            'due_date' => $data['due_date'],
+            'notes' => $data['notes'] ?? null,
         ]);
 
         return response()->json($invoice->load(['student.class', 'feeStructure']), 201);
@@ -97,7 +113,7 @@ class FeeController extends Controller
 
     public function bulkGenerateInvoices(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'class_id' => 'required|exists:classes,id',
             'fee_structure_id' => 'required|exists:fee_structures,id',
             'due_date' => 'required|date',
@@ -147,7 +163,7 @@ class FeeController extends Controller
 
     public function storePayment(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'invoice_id' => 'required|exists:fee_invoices,id',
             'amount' => 'required|numeric|min:0.01',
             'payment_method' => 'required|in:cash,bank_transfer,online,check,mobile',
@@ -156,29 +172,53 @@ class FeeController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $invoice = FeeInvoice::findOrFail($request->invoice_id);
+        $payment = DB::transaction(function () use ($data, $request) {
+            $invoice = FeeInvoice::whereKey($data['invoice_id'])->lockForUpdate()->firstOrFail();
+            $remaining = max(0, (float) $invoice->amount - (float) $invoice->discount - (float) $invoice->paid_amount);
 
-        if ($invoice->status === 'paid') {
-            return response()->json(['message' => 'Invoice is already fully paid.'], 422);
-        }
+            if ($remaining <= 0 || $invoice->status === 'paid') {
+                abort(422, 'Invoice is already fully paid.');
+            }
 
-        $payment = FeePayment::create([
-            'invoice_id' => $invoice->id,
-            'student_id' => $invoice->student_id,
-            'amount' => $request->amount,
-            'payment_method' => $request->payment_method,
-            'transaction_reference' => $request->transaction_reference,
-            'payment_date' => $request->payment_date,
-            'notes' => $request->notes,
-            'received_by' => $request->user()->id,
-        ]);
+            if ((float) $data['amount'] > $remaining) {
+                abort(422, 'Payment cannot exceed the invoice balance.');
+            }
 
-        $invoice->paid_amount += $request->amount;
-        $invoice->balance = max(0, $invoice->amount - $invoice->discount - $invoice->paid_amount);
-        $invoice->status = $invoice->balance <= 0 ? 'paid' : 'partial';
-        $invoice->save();
+            $payment = FeePayment::create([
+                'invoice_id' => $invoice->id,
+                'student_id' => $invoice->student_id,
+                'amount' => $data['amount'],
+                'payment_method' => $data['payment_method'],
+                'transaction_reference' => $data['transaction_reference'] ?? null,
+                'payment_date' => $data['payment_date'],
+                'notes' => $data['notes'] ?? null,
+                'received_by' => $request->user()->id,
+            ]);
 
-        return response()->json($payment->load(['invoice', 'student.class']), 201);
+            $invoice->paid_amount = (float) $invoice->paid_amount + (float) $data['amount'];
+            $invoice->balance = max(0, (float) $invoice->amount - (float) $invoice->discount - (float) $invoice->paid_amount);
+            $invoice->status = $invoice->balance <= 0 ? 'paid' : 'partial';
+            $invoice->save();
+
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'action' => 'fee_payment_recorded',
+                'subject_type' => FeePayment::class,
+                'subject_id' => $payment->id,
+                'properties' => [
+                    'invoice_id' => $invoice->id,
+                    'amount' => $data['amount'],
+                    'payment_method' => $data['payment_method'],
+                    'balance_after' => $invoice->balance,
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return $payment->load(['invoice', 'student.class']);
+        });
+
+        return response()->json($payment, 201);
     }
 
     // ─── Scholarships ───────────────────────────────────────────────────────
@@ -195,7 +235,7 @@ class FeeController extends Controller
 
     public function storeScholarship(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'required|in:percentage,fixed',
@@ -204,7 +244,7 @@ class FeeController extends Controller
             'max_recipients' => 'nullable|integer|min:1',
         ]);
 
-        $scholarship = Scholarship::create($request->all());
+        $scholarship = Scholarship::create($data);
         return response()->json($scholarship, 201);
     }
 
@@ -269,8 +309,11 @@ class FeeController extends Controller
         ]);
     }
 
-    public function studentFeeStatus(Request $request, Student $student)
+    public function studentFeeStatus(Request $request)
     {
+        $user = $request->user();
+        abort_unless($user && $user->isStudent() && $user->student_id, 403);
+        $student = Student::findOrFail($user->student_id);
         $invoices = FeeInvoice::where('student_id', $student->id)
             ->with('feeStructure', 'payments')
             ->orderByDesc('created_at')

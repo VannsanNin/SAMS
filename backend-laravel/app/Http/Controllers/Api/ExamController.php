@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamMark;
+use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -13,6 +14,7 @@ class ExamController extends Controller
     public function index(Request $request)
     {
         $query = Exam::with(['subject', 'schoolClass']);
+        $this->applyTeacherScope($query, $request->user());
 
         if ($request->has('subject_id')) {
             $query->where('subject_id', $request->subject_id);
@@ -46,7 +48,7 @@ class ExamController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:quiz,midterm,final,monthly,practical,oral',
             'subject_id' => 'required|exists:subjects,id',
@@ -71,8 +73,9 @@ class ExamController extends Controller
         return response()->json($exam->load(['subject', 'schoolClass']), 201);
     }
 
-    public function show(Exam $exam)
+    public function show(Request $request, Exam $exam)
     {
+        abort_unless($this->canViewExam($request->user(), $exam), 403);
         return response()->json($exam->load([
             'subject',
             'schoolClass',
@@ -82,7 +85,7 @@ class ExamController extends Controller
 
     public function update(Request $request, Exam $exam)
     {
-        $request->validate([
+        $data = $request->validate([
             'name' => 'sometimes|string|max:255',
             'type' => 'sometimes|in:quiz,midterm,final,monthly,practical,oral',
             'subject_id' => 'sometimes|exists:subjects,id',
@@ -97,7 +100,7 @@ class ExamController extends Controller
             'status' => 'sometimes|in:draft,scheduled,ongoing,completed,cancelled',
         ]);
 
-        $exam->update($request->all());
+        $exam->update($data);
 
         return response()->json($exam->load(['subject', 'schoolClass']));
     }
@@ -112,6 +115,7 @@ class ExamController extends Controller
 
     public function marks(Request $request, Exam $exam)
     {
+        abort_unless($this->canViewExam($request->user(), $exam), 403);
         $marks = ExamMark::where('exam_id', $exam->id)
             ->with('student.class')
             ->orderBy('student_id')
@@ -122,17 +126,26 @@ class ExamController extends Controller
 
     public function storeMarks(Request $request, Exam $exam)
     {
+        abort_unless($this->canManageExam($request->user(), $exam), 403);
+
         $request->validate([
             'marks' => 'required|array',
             'marks.*.student_id' => 'required|exists:students,id',
             'marks.*.marks_obtained' => 'nullable|numeric|min:0|max:' . $exam->total_marks,
-            'marks.*.marks_obtained_practical' => 'nullable|numeric|min:0',
+            'marks.*.marks_obtained_practical' => 'nullable|numeric|min:0|max:' . $exam->total_marks,
             'marks.*.remarks' => 'nullable|string',
             'marks.*.is_absent' => 'nullable|boolean',
             'marks.*.is_excused' => 'nullable|boolean',
         ]);
 
         foreach ($request->marks as $markData) {
+            abort_unless(
+                \App\Models\Student::whereKey($markData['student_id'])
+                    ->where('class_id', $exam->class_id)
+                    ->exists(),
+                422
+            );
+
             ExamMark::updateOrCreate(
                 ['exam_id' => $exam->id, 'student_id' => $markData['student_id']],
                 [
@@ -146,6 +159,29 @@ class ExamController extends Controller
         }
 
         return response()->json(['message' => 'Marks saved successfully.']);
+    }
+
+    private function canManageExam(?\App\Models\User $user, Exam $exam): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->isAdmin() || $user->isPrincipal()) {
+            return true;
+        }
+
+        if (! $user->isTeacher() || ! $user->teacher_id) {
+            return false;
+        }
+
+        return \App\Models\Teacher::whereKey($user->teacher_id)
+            ->where(function ($query) use ($exam, $user) {
+                $query->whereHas('assignedClasses', fn ($q) => $q->whereKey($exam->class_id))
+                    ->orWhereHas('classes', fn ($q) => $q->whereKey($exam->class_id))
+                    ->orWhereHas('subjects', fn ($q) => $q->whereKey($exam->subject_id));
+            })
+            ->exists();
     }
 
     public function studentMarks(Request $request, Exam $exam)
@@ -166,6 +202,7 @@ class ExamController extends Controller
 
     public function classResults(Request $request, Exam $exam)
     {
+        abort_unless($this->canViewExam($request->user(), $exam), 403);
         $marks = ExamMark::where('exam_id', $exam->id)
             ->where('is_absent', false)
             ->with('student.class')
@@ -202,5 +239,48 @@ class ExamController extends Controller
                 'lowest' => $marks->isNotEmpty() ? $marks->min('percentage') : 0,
             ],
         ]);
+    }
+
+    private function canViewExam(?\App\Models\User $user, Exam $exam): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->isAdmin() || $user->isPrincipal()) {
+            return true;
+        }
+
+        if (! $user->isTeacher() || ! $user->teacher_id) {
+            return false;
+        }
+
+        return Teacher::whereKey($user->teacher_id)
+            ->where(function ($query) use ($exam) {
+                $query->whereHas('assignedClasses', fn ($q) => $q->whereKey($exam->class_id))
+                    ->orWhereHas('classes', fn ($q) => $q->whereKey($exam->class_id))
+                    ->orWhereHas('subjects', fn ($q) => $q->whereKey($exam->subject_id));
+            })->exists();
+    }
+
+    private function applyTeacherScope($query, ?\App\Models\User $user): void
+    {
+        if (! $user || ! $user->isTeacher() || ! $user->teacher_id) {
+            return;
+        }
+
+        $teacher = Teacher::find($user->teacher_id);
+        if (! $teacher) {
+            $query->whereRaw('1 = 0');
+            return;
+        }
+
+        $classIds = $teacher->assignedClasses()->pluck('classes.id')
+            ->merge($teacher->classes()->pluck('id'))->unique();
+        $subjectIds = $teacher->subjects()->pluck('subjects.id');
+
+        $query->where(function ($q) use ($classIds, $subjectIds) {
+            $q->whereIn('class_id', $classIds)->orWhereIn('subject_id', $subjectIds);
+        });
     }
 }

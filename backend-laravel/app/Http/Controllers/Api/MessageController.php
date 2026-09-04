@@ -33,7 +33,7 @@ class MessageController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'recipient_id' => 'required|exists:users,id',
             'subject' => 'nullable|string|max:255',
             'body' => 'required|string',
@@ -101,6 +101,22 @@ class MessageController extends Controller
                 $q->whereNull('target_roles')
                     ->orWhereJsonContains('target_roles', $user->role);
             });
+
+            $classIds = collect();
+            if ($user->isStudent() && $user->student_id) {
+                $classIds = collect([(int) optional($user->student)->class_id]);
+            } elseif ($user->isParent() && $user->guardian_id) {
+                $classIds = optional($user->guardian)->students()->pluck('class_id');
+            }
+
+            $query->where(function ($q) use ($classIds) {
+                $q->whereNull('target_classes');
+                if ($classIds->filter()->isNotEmpty()) {
+                    foreach ($classIds->filter()->unique() as $classId) {
+                        $q->orWhereJsonContains('target_classes', $classId);
+                    }
+                }
+            });
         }
 
         return response()->json($query->with('author')->orderByDesc('publish_date')->paginate(25));
@@ -108,18 +124,20 @@ class MessageController extends Controller
 
     public function storeAnnouncement(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'title' => 'required|string|max:255',
             'body' => 'required|string',
             'priority' => 'nullable|in:low,normal,high,urgent',
             'target_roles' => 'nullable|array',
+            'target_roles.*' => 'string|in:admin,principal,teacher,student,class_president,parent,accountant,librarian,receptionist,staff',
             'target_classes' => 'nullable|array',
+            'target_classes.*' => 'integer|exists:classes,id',
             'publish_date' => 'required|date',
             'expiry_date' => 'nullable|date|after:publish_date',
         ]);
 
         $announcement = Announcement::create([
-            ...$request->all(),
+            ...$data,
             'author_id' => $request->user()->id,
         ]);
 

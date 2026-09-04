@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Award, Plus, SquarePen, Trash2, Search, Eye, Trophy } from 'lucide-react';
+import { Award, Plus, Trash2, Search, Trophy } from 'lucide-react';
 import { apiFetch } from '../api';
 import Pagination from '../components/Pagination';
 import Modal from '../components/Modal';
@@ -66,7 +66,7 @@ function RecipientForm({ awardId, onSave, onClose }) {
     try {
       await apiFetch(`${API}/awards/${awardId}/recipients`, { method: 'POST', body: JSON.stringify(form) });
       onSave();
-    } catch (e) {} finally { setSaving(false); }
+    } catch { setSaving(false); return; } finally { setSaving(false); }
   };
 
   return (
@@ -94,7 +94,6 @@ export default function Awards() {
   const [search, setSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [recipientOpen, setRecipientOpen] = useState(null);
-  const [viewing, setViewing] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [msg, setMsg] = useState(null);
 

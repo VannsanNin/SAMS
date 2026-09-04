@@ -87,10 +87,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Messages ───────────────────────────────────────────────────────
     Route::get('messages', [MessageController::class, 'index']);
     Route::get('messages/sent', [MessageController::class, 'sent']);
+    Route::get('messages/unread-count', [MessageController::class, 'unreadCount']);
     Route::post('messages', [MessageController::class, 'store']);
     Route::get('messages/{message}', [MessageController::class, 'show']);
     Route::delete('messages/{message}', [MessageController::class, 'destroy']);
-    Route::get('messages/unread-count', [MessageController::class, 'unreadCount']);
 
     // ── Announcements (anyone can view) ────────────────────────────────
     Route::get('announcements', [MessageController::class, 'announcements']);
@@ -169,6 +169,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // ── Students (mutations) ────────────────────────────────────────────
         Route::post('students/import', [StudentController::class, 'import']);
+        Route::get('students/{student}/enrollments', [StudentController::class, 'enrollments']);
+        Route::post('students/{student}/promote', [StudentController::class, 'promote']);
         Route::post('students', [StudentController::class, 'store']);
         Route::put('students/{student}', [StudentController::class, 'update']);
         Route::patch('students/{student}', [StudentController::class, 'update']);
@@ -209,7 +211,41 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('grade-scales', [GradeController::class, 'gradeScales']);
         Route::post('grade-scales', [GradeController::class, 'storeGradeScale']);
 
-        // ── Fees ─────────────────────────────────────────────────────────
+        // ── Library ─────────────────────────────────────────────────────
+        Route::post('library/books', [LibraryController::class, 'store']);
+        Route::put('library/books/{book}', [LibraryController::class, 'update']);
+        Route::delete('library/books/{book}', [LibraryController::class, 'destroy']);
+        Route::get('library/borrowings', [LibraryController::class, 'borrowings']);
+        Route::post('library/borrow', [LibraryController::class, 'borrowBook']);
+        Route::post('library/return/{borrowing}', [LibraryController::class, 'returnBook']);
+        Route::get('library/overdue', [LibraryController::class, 'overdueBooks']);
+        Route::get('library/stats', [LibraryController::class, 'stats']);
+
+        // ── Announcements (admin create) ────────────────────────────────
+        Route::post('announcements', [MessageController::class, 'storeAnnouncement']);
+
+        // ── School Management ───────────────────────────────────────────
+        Route::get('school/academic-years', [SchoolController::class, 'academicYears']);
+        Route::post('school/academic-years', [SchoolController::class, 'storeAcademicYear']);
+        Route::put('school/academic-years/{academicYear}', [SchoolController::class, 'updateAcademicYear']);
+        Route::delete('school/academic-years/{academicYear}', [SchoolController::class, 'destroyAcademicYear']);
+        Route::get('school/academic-years/{academicYear}/semesters', [SchoolController::class, 'semesters']);
+        Route::post('school/academic-years/{academicYear}/semesters', [SchoolController::class, 'storeSemester']);
+        Route::get('school/departments', [SchoolController::class, 'departments']);
+        Route::post('school/departments', [SchoolController::class, 'storeDepartment']);
+        Route::put('school/departments/{department}', [SchoolController::class, 'updateDepartment']);
+        Route::get('school/buildings', [SchoolController::class, 'buildings']);
+        Route::post('school/buildings', [SchoolController::class, 'storeBuilding']);
+        Route::put('school/buildings/{building}', [SchoolController::class, 'updateBuilding']);
+        Route::delete('school/buildings/{building}', [SchoolController::class, 'destroyBuilding']);
+        Route::get('school/rooms', [SchoolController::class, 'rooms']);
+        Route::post('school/rooms', [SchoolController::class, 'storeRoom']);
+        Route::put('school/rooms/{room}', [SchoolController::class, 'updateRoom']);
+        Route::delete('school/rooms/{room}', [SchoolController::class, 'destroyRoom']);
+
+    });
+
+    Route::middleware('role:admin,principal,accountant')->group(function () {
         Route::get('fees/structures', [FeeController::class, 'feeStructures']);
         Route::post('fees/structures', [FeeController::class, 'storeFeeStructure']);
         Route::put('fees/structures/{feeStructure}', [FeeController::class, 'updateFeeStructure']);
@@ -225,71 +261,39 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('fees/scholarships/{scholarship}/apply', [FeeController::class, 'applyScholarship']);
         Route::put('fees/scholarship-applications/{application}', [FeeController::class, 'reviewScholarshipApplication']);
         Route::get('fees/reports/collection', [FeeController::class, 'feeCollectionReport']);
-
-        // ── Library ─────────────────────────────────────────────────────
-        Route::post('library/books', [LibraryController::class, 'store']);
-        Route::put('library/books/{book}', [LibraryController::class, 'update']);
-        Route::delete('library/books/{book}', [LibraryController::class, 'destroy']);
-        Route::get('library/borrowings', [LibraryController::class, 'borrowings']);
-        Route::post('library/borrow', [LibraryController::class, 'borrowBook']);
-        Route::post('library/return/{borrowing}', [LibraryController::class, 'returnBook']);
-        Route::get('library/overdue', [LibraryController::class, 'overdueBooks']);
-        Route::get('library/stats', [LibraryController::class, 'stats']);
-
-        // ── Homework ────────────────────────────────────────────────────
-        Route::get('homework', [HomeworkController::class, 'index']);
-        Route::post('homework', [HomeworkController::class, 'store']);
-        Route::get('homework/{homework}', [HomeworkController::class, 'show']);
-        Route::put('homework/{homework}', [HomeworkController::class, 'update']);
-        Route::delete('homework/{homework}', [HomeworkController::class, 'destroy']);
-        Route::get('homework/{homework}/submissions', [HomeworkController::class, 'submissions']);
-        Route::post('homework/submissions/{submission}/grade', [HomeworkController::class, 'gradeSubmission']);
-        Route::get('homework/stats', [HomeworkController::class, 'homeworkStats']);
-
-        // ── Events ──────────────────────────────────────────────────────
-        Route::post('events', [EventController::class, 'store']);
-        Route::put('events/{event}', [EventController::class, 'update']);
-        Route::delete('events/{event}', [EventController::class, 'destroy']);
-
-        // ── Discipline ──────────────────────────────────────────────────
-        Route::get('discipline', [EventController::class, 'disciplineRecords']);
-        Route::post('discipline', [EventController::class, 'storeDisciplineRecord']);
-
-        // ── Awards ──────────────────────────────────────────────────────
-        Route::get('awards', [EventController::class, 'awards']);
-        Route::post('awards', [EventController::class, 'storeAward']);
-
-        // ── Documents ───────────────────────────────────────────────────
-        Route::get('documents', [EventController::class, 'documents']);
-        Route::post('documents', [EventController::class, 'storeDocument']);
-        Route::delete('documents/{document}', [EventController::class, 'destroyDocument']);
-
-        // ── Announcements (admin create) ────────────────────────────────
-        Route::post('announcements', [MessageController::class, 'storeAnnouncement']);
-
-        // ── School Management ───────────────────────────────────────────
-        Route::get('school/academic-years', [SchoolController::class, 'academicYears']);
-        Route::post('school/academic-years', [SchoolController::class, 'storeAcademicYear']);
-        Route::get('school/academic-years/{academicYear}/semesters', [SchoolController::class, 'semesters']);
-        Route::post('school/academic-years/{academicYear}/semesters', [SchoolController::class, 'storeSemester']);
-        Route::get('school/departments', [SchoolController::class, 'departments']);
-        Route::post('school/departments', [SchoolController::class, 'storeDepartment']);
-        Route::put('school/departments/{department}', [SchoolController::class, 'updateDepartment']);
-        Route::get('school/buildings', [SchoolController::class, 'buildings']);
-        Route::post('school/buildings', [SchoolController::class, 'storeBuilding']);
-        Route::get('school/rooms', [SchoolController::class, 'rooms']);
-        Route::post('school/rooms', [SchoolController::class, 'storeRoom']);
-
-        // ── Payroll ─────────────────────────────────────────────────────
         Route::get('payroll', [SchoolController::class, 'payroll']);
         Route::post('payroll', [SchoolController::class, 'storePayroll']);
         Route::get('payroll/reports', [SchoolController::class, 'payrollReport']);
+    });
+
+    Route::middleware('role:admin,teacher,principal')->group(function () {
+        Route::post('events', [EventController::class, 'store']);
+        Route::put('events/{event}', [EventController::class, 'update']);
+        Route::delete('events/{event}', [EventController::class, 'destroy']);
+        Route::get('discipline', [EventController::class, 'disciplineRecords']);
+        Route::post('discipline', [EventController::class, 'storeDisciplineRecord']);
+        Route::get('awards', [EventController::class, 'awards']);
+        Route::post('awards', [EventController::class, 'storeAward']);
+        Route::get('documents', [EventController::class, 'documents']);
+        Route::get('documents/{document}/download', [EventController::class, 'downloadDocument']);
+        Route::post('documents', [EventController::class, 'storeDocument']);
+        Route::delete('documents/{document}', [EventController::class, 'destroyDocument']);
     });
 
     // ═══════════════════════════════════════════════════════════════════════════
     // ADMIN + TEACHER
     // ═══════════════════════════════════════════════════════════════════════════
     Route::middleware('role:admin,teacher,principal')->group(function () {
+
+        // ── Homework ────────────────────────────────────────────────────────
+        Route::get('homework', [HomeworkController::class, 'index']);
+        Route::get('homework/stats', [HomeworkController::class, 'homeworkStats']);
+        Route::get('homework/{homework}', [HomeworkController::class, 'show']);
+        Route::get('homework/{homework}/submissions', [HomeworkController::class, 'submissions']);
+        Route::post('homework', [HomeworkController::class, 'store']);
+        Route::put('homework/{homework}', [HomeworkController::class, 'update']);
+        Route::delete('homework/{homework}', [HomeworkController::class, 'destroy']);
+        Route::post('homework/submissions/{submission}/grade', [HomeworkController::class, 'gradeSubmission']);
 
         // ── Students (read) ─────────────────────────────────────────────────
         Route::get('students/filters', [StudentController::class, 'filters']);

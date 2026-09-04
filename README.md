@@ -1,6 +1,6 @@
-# SAMS — School Attendance Management System
+# SAMS — Cambodian School Management System
 
-A full-stack School Attendance Management System built with **Laravel** (backend API) and **React + Vite + Tailwind CSS v4** (frontend), connected to **MySQL**.
+A full-stack school management system for Cambodian schools, built with **Laravel** (backend API) and **React + Vite + Tailwind CSS v4** (frontend), connected to **MySQL**. It supports primary and secondary education from Grade 1 through Grade 12.
 
 ---
 
@@ -29,6 +29,23 @@ A full-stack School Attendance Management System built with **Laravel** (backend
 - **Attendance reports** — Student, class, course, and department reports with trends and low-attendance alerts
 - **Leave management** — Submit, approve/reject, and track leave requests with filters and export
 - **Dashboard** — Overview counts for all entities
+- **Academic progression** — Grade 1–12 and primary/lower-secondary/upper-secondary classification, enrollment history, and promotion workflow
+- **School operations** — Academic years, semesters, rooms, departments, payroll, library, homework, exams, report cards, fees, events, documents, leave, and audit logs
+- **Khmer readiness** — Khmer-compatible fonts and a persistent Khmer/English interface switch
+
+## Before a school goes live
+
+This project is ready for a controlled pilot after the following operational steps are completed:
+
+1. Copy `.env.example` to `.env`, generate a new application key, and use a dedicated MySQL user. Never deploy the repository demo credentials.
+2. Set `APP_ENV=production`, `APP_DEBUG=false`, a real HTTPS `APP_URL`, mail settings, and `APP_TIMEZONE=Asia/Phnom_Penh`.
+3. Run `php artisan migrate --force`, build the frontend, configure the web server and queue/scheduler workers, and enable daily encrypted database/file backups.
+   The built-in `php artisan sams:backup` command creates timestamped database and private-document backups under `storage/app/private/backups`; copy those files to encrypted off-site storage and test restoration regularly.
+4. Import a small real dataset first. Verify student identifiers, guardian links, grade levels, classes, teacher assignments, fees, and Khmer names before importing the full school.
+5. Test each role (admin, principal, teacher, accountant, librarian, staff, student, parent) with test accounts, especially student privacy, marks, fees, documents, promotion, and exports.
+6. Keep the system in pilot for one term and reconcile attendance, grades, invoices, and reports against the school’s paper records before public rollout.
+
+The application includes backend authorization and regression tests, but school policy decisions still need confirmation: grading scale, attendance rules, fee categories, promotion criteria, document retention, and who may access parent/student data. A production deployment also needs monitoring, restore testing, HTTPS, rate limiting at the reverse proxy, and a backup retention policy.
 
 ---
 

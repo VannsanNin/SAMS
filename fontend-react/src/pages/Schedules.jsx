@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { COLORS, PageShell, FilterBar, Select } from "../components/shared";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];

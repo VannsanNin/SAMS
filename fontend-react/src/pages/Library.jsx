@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BookOpen, Plus, SquarePen, Trash2, Search, BookMarked, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { BookOpen, Plus, Trash2, Search, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 import { apiFetch } from '../api';
-import Pagination from '../components/Pagination';
 import Modal from '../components/Modal';
 
 const API = '/api';
@@ -59,7 +58,7 @@ export default function Library() {
   const [tab, setTab] = useState('books');
   const [books, setBooks] = useState([]);
   const [borrowings, setBorrowings] = useState([]);
-  const [meta, setMeta] = useState(null);
+  const [, setMeta] = useState(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);

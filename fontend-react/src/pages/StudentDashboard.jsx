@@ -4,7 +4,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
 import {
-  CalendarCheck, Award, ClipboardList, DollarSign, Megaphone, CalendarOff,
+  CalendarCheck, Award, ClipboardList, DollarSign, Megaphone, CalendarOff, Calendar, ArrowUpRight
 } from 'lucide-react';
 
 const ICONS = {
@@ -14,24 +14,33 @@ const ICONS = {
   fees: DollarSign,
 };
 
-const COLORS = ['#6E8F68', '#D98E2B', '#C25B45'];
+const CHART_PALETTE = ['#10B981', '#F59E0B', '#EF4444'];
 
 const tooltipStyle = {
-  backgroundColor: '#1E2A4A', borderRadius: '4px', border: 'none', color: '#faf8f3', fontSize: '12px',
+  backgroundColor: '#0F172A',
+  borderRadius: '0.75rem',
+  border: 'none',
+  color: '#F8FAFC',
+  fontSize: '12px',
+  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2)',
 };
 
 function StatCard({ item }) {
   const Icon = ICONS[item.icon] || Award;
   const value = `${item.prefix ?? ''}${item.value}${item.suffix ?? ''}`;
   return (
-    <div className="bg-white border border-hairline rounded-sm p-5 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-ledger-slate uppercase tracking-wider">{item.label}</h3>
-          <p className="text-3xl font-bold text-ink mt-2 tracking-tight truncate">{value}</p>
+    <div className="impeccable-card p-5 flex flex-col justify-between group">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{item.label}</span>
+        <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 group-hover:scale-105 transition-transform duration-200">
+          <Icon size={19} />
         </div>
-        <div className="p-3 rounded-sm bg-paper text-ochre border border-[#E4DECF] shrink-0">
-          <Icon size={20} />
+      </div>
+      <div className="mt-4">
+        <p className="text-3xl font-display font-bold text-slate-900 tracking-tight truncate">{value}</p>
+        <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-emerald-600">
+          <ArrowUpRight size={14} />
+          <span>Student portal</span>
         </div>
       </div>
     </div>
@@ -40,20 +49,24 @@ function StatCard({ item }) {
 
 function ChartCard({ title, subtitle, children }) {
   return (
-    <section className="bg-white border border-hairline rounded-sm p-5 shadow-sm">
-      <h2 className="text-sm font-semibold text-ink tracking-tight">{title}</h2>
-      {subtitle && <p className="text-xs text-ledger-slate mt-0.5 mb-3">{subtitle}</p>}
-      <div className="mt-3">{children}</div>
+    <section className="impeccable-card p-6">
+      <div className="mb-4">
+        <h2 className="text-base font-display font-bold text-slate-900">{title}</h2>
+        {subtitle && <p className="text-xs text-slate-500 font-medium mt-0.5">{subtitle}</p>}
+      </div>
+      {children}
     </section>
   );
 }
 
 function ListCard({ title, subtitle, children }) {
   return (
-    <section className="bg-white border border-hairline rounded-sm p-5 shadow-sm">
-      <h2 className="text-sm font-semibold text-ink tracking-tight">{title}</h2>
-      {subtitle && <p className="text-xs text-ledger-slate mt-0.5">{subtitle}</p>}
-      <div className="mt-3">{children}</div>
+    <section className="impeccable-card p-6">
+      <div className="mb-4">
+        <h2 className="text-base font-display font-bold text-slate-900">{title}</h2>
+        {subtitle && <p className="text-xs text-slate-500 font-medium mt-0.5">{subtitle}</p>}
+      </div>
+      {children}
     </section>
   );
 }
@@ -61,14 +74,14 @@ function ListCard({ title, subtitle, children }) {
 function GradeTrend({ data }) {
   return (
     <ChartCard title="My Grade Trend" subtitle="Average marks across periods">
-      <div className="h-60">
+      <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ece7db" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748B' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Line type="monotone" dataKey="average" name="Average" stroke="#D98E2B" strokeWidth={2.5} dot={{ fill: '#1E2A4A', r: 3 }} />
+            <Line type="monotone" dataKey="average" name="Average" stroke="#F59E0B" strokeWidth={3} dot={{ fill: '#4F46E5', r: 4 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -78,15 +91,15 @@ function GradeTrend({ data }) {
 
 function SubjectWise({ data }) {
   return (
-    <ChartCard title="Subject-wise Performance" subtitle="Score by subject">
-      <div className="h-60">
+    <ChartCard title="Subject Performance" subtitle="Score by subject">
+      <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 30 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ece7db" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" />
-            <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748B' }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" />
+            <YAxis tick={{ fontSize: 11, fill: '#64748B' }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="score" name="Score" fill="#1E2A4A" radius={[2, 2, 0, 0]} barSize={26} />
+            <Bar dataKey="score" name="Score" fill="#4F46E5" radius={[6, 6, 0, 0]} barSize={26} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -99,21 +112,21 @@ function AttendanceBreakdown({ data }) {
   return (
     <ChartCard title="Attendance Breakdown" subtitle="Present / late / absent">
       {total === 0 ? (
-        <p className="text-ledger-slate text-sm text-center py-16">No attendance records yet</p>
+        <p className="text-slate-400 text-sm text-center py-16 font-medium">No attendance records yet</p>
       ) : (
-        <div className="h-60 flex flex-col items-center justify-center">
+        <div className="h-64 flex flex-col items-center justify-center">
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
-              <Pie data={data} dataKey="value" nameKey="label" innerRadius={50} outerRadius={75} paddingAngle={3} strokeWidth={0}>
-                {data.map((d, i) => <Cell key={d.label} fill={COLORS[i % COLORS.length]} />)}
+              <Pie data={data} dataKey="value" nameKey="label" innerRadius={50} outerRadius={75} paddingAngle={4} strokeWidth={0}>
+                {data.map((d, i) => <Cell key={d.label} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />)}
               </Pie>
               <Tooltip contentStyle={tooltipStyle} />
             </PieChart>
           </ResponsiveContainer>
-          <div className="flex gap-4 text-xs font-medium text-ink">
-            {data.map((d) => (
+          <div className="flex gap-4 text-xs font-semibold text-slate-700 mt-2">
+            {data.map((d, i) => (
               <span key={d.label} className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS[data.indexOf(d) % COLORS.length] }} />
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_PALETTE[i % CHART_PALETTE.length] }} />
                 {d.label} · <b>{d.value}</b>
               </span>
             ))}
@@ -125,7 +138,7 @@ function AttendanceBreakdown({ data }) {
 }
 
 function EmptyMessage({ text }) {
-  return <p className="text-ledger-slate text-sm text-center py-6">{text}</p>;
+  return <p className="text-slate-400 text-sm text-center py-6 font-medium">{text}</p>;
 }
 
 export default function StudentDashboard({ data }) {
@@ -134,24 +147,28 @@ export default function StudentDashboard({ data }) {
   const l = data.lists || {};
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-hairline">
+    <div className="space-y-6 pb-12 font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
         <div>
-          <h1 className="text-2xl font-display font-bold text-ink tracking-tight">Student Dashboard</h1>
-          <p className="text-xs text-ledger-slate font-medium mt-0.5">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-slate-900 tracking-tight">Student Dashboard</h1>
+          <p className="text-sm text-slate-500 font-medium mt-1 flex items-center gap-2">
+            <Calendar size={15} className="text-indigo-600" />
             {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
-        <Link to="/leaves" className="inline-flex items-center gap-2 border border-ink text-ink font-semibold text-xs px-4 py-2.5 rounded-sm transition">
-          <CalendarOff size={15} /> Request Leave
+        <Link
+          to="/leaves"
+          className="inline-flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-all"
+        >
+          <CalendarOff size={16} /> Request Leave
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         {kpis.map((k, i) => <StatCard key={i} item={k} />)}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-5"><GradeTrend data={g.grade_trend || []} /></div>
         <div className="lg:col-span-4"><SubjectWise data={g.subject_wise || []} /></div>
         <div className="lg:col-span-3"><AttendanceBreakdown data={g.attendance_breakdown || []} /></div>
@@ -159,11 +176,11 @@ export default function StudentDashboard({ data }) {
         <div className="lg:col-span-5">
           <ListCard title="Today's Timetable" subtitle={`${(l.today_timetable || []).length} session(s)`}>
             {l.today_timetable?.length ? (
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {l.today_timetable.map((s) => (
-                  <li key={s.id} className="flex items-center justify-between border border-[#E4DECF] rounded-sm p-3">
-                    <p className="text-xs font-semibold text-ink truncate">{s.subject || '—'}</p>
-                    <span className="text-[11px] font-semibold text-ledger-slate pl-2 whitespace-nowrap">{s.time_start}–{s.time_end}</span>
+                  <li key={s.id} className="flex items-center justify-between border border-slate-100 rounded-xl p-3.5 bg-slate-50/50 hover:bg-white transition-all">
+                    <p className="text-xs font-semibold text-slate-900 truncate">{s.subject || '—'}</p>
+                    <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full whitespace-nowrap">{s.time_start}–{s.time_end}</span>
                   </li>
                 ))}
               </ul>
@@ -173,22 +190,22 @@ export default function StudentDashboard({ data }) {
 
         <div className="lg:col-span-4">
           <ListCard title="Upcoming Assignments & Exams" subtitle="With due dates">
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               {l.upcoming_assignments?.length ? (
                 <>
-                  <p className="text-[10px] font-semibold text-ledger-slate uppercase tracking-wider">Assignments</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assignments</p>
                   <ul className="space-y-2">
                     {l.upcoming_assignments.map((h) => (
-                      <li key={h.id} className="flex items-center justify-between border border-[#E4DECF] rounded-sm p-3">
+                      <li key={h.id} className="flex items-center justify-between border border-slate-100 rounded-xl p-3 bg-slate-50/50">
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-ink truncate">{h.title}</p>
-                          <p className="text-[11px] text-ledger-slate truncate">{h.subject || '—'}</p>
+                          <p className="text-xs font-semibold text-slate-900 truncate">{h.title}</p>
+                          <p className="text-[11px] text-slate-500 font-medium truncate">{h.subject || '—'}</p>
                         </div>
                         <div className="pl-2 text-right whitespace-nowrap">
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-sm border ${h.status === 'submitted' ? 'text-sage border-sage bg-sage/10' : 'text-ochre border-ochre bg-ochre/10'}`}>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${h.status === 'submitted' ? 'text-emerald-700 border-emerald-200 bg-emerald-50' : 'text-amber-700 border-amber-200 bg-amber-50'}`}>
                             {h.status}
                           </span>
-                          <p className="text-[10px] text-ledger-slate mt-1">Due {h.due_date}</p>
+                          <p className="text-[10px] text-slate-400 font-medium mt-1">Due {h.due_date}</p>
                         </div>
                       </li>
                     ))}
@@ -197,15 +214,15 @@ export default function StudentDashboard({ data }) {
               ) : null}
               {l.upcoming_exams?.length ? (
                 <>
-                  <p className="text-[10px] font-semibold text-ledger-slate uppercase tracking-wider">Exams</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exams</p>
                   <ul className="space-y-2">
                     {l.upcoming_exams.map((e) => (
-                      <li key={e.id} className="flex items-center justify-between border border-[#E4DECF] rounded-sm p-3">
+                      <li key={e.id} className="flex items-center justify-between border border-slate-100 rounded-xl p-3 bg-slate-50/50">
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-ink truncate">{e.name}</p>
-                          <p className="text-[11px] text-ledger-slate truncate">{e.subject || '—'}</p>
+                          <p className="text-xs font-semibold text-slate-900 truncate">{e.name}</p>
+                          <p className="text-[11px] text-slate-500 font-medium truncate">{e.subject || '—'}</p>
                         </div>
-                        <span className="text-[11px] font-semibold text-ochre pl-2 whitespace-nowrap">{e.date}</span>
+                        <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full whitespace-nowrap">{e.date}</span>
                       </li>
                     ))}
                   </ul>
@@ -217,16 +234,16 @@ export default function StudentDashboard({ data }) {
         </div>
 
         <div className="lg:col-span-3">
-          <ListCard title="Recent Grades Posted">
+          <ListCard title="Recent Grades">
             {l.recent_grades?.length ? (
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {l.recent_grades.map((m, i) => (
-                  <li key={i} className="flex items-center justify-between border border-[#E4DECF] rounded-sm p-3">
+                  <li key={i} className="flex items-center justify-between border border-slate-100 rounded-xl p-3.5 bg-slate-50/50">
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-ink truncate">{m.subject || '—'}</p>
-                      <p className="text-[11px] text-ledger-slate">{m.date || '—'}</p>
+                      <p className="text-xs font-semibold text-slate-900 truncate">{m.subject || '—'}</p>
+                      <p className="text-[11px] text-slate-500 font-medium">{m.date || '—'}</p>
                     </div>
-                    <span className="text-sm font-bold text-ochre pl-2">{m.marks}</span>
+                    <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">{m.marks}</span>
                   </li>
                 ))}
               </ul>
@@ -239,14 +256,14 @@ export default function StudentDashboard({ data }) {
             {l.announcements?.length ? (
               <ul className="space-y-3">
                 {l.announcements.map((a) => (
-                  <li key={a.id} className="border border-[#E4DECF] rounded-sm p-4">
+                  <li key={a.id} className="border border-slate-100 rounded-xl p-4 bg-slate-50/50 hover:bg-white transition-all">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-ink flex items-center gap-2">
-                        <Megaphone size={14} className="text-ochre" /> {a.title}
+                      <p className="text-xs font-semibold text-slate-900 flex items-center gap-2">
+                        <Megaphone size={15} className="text-indigo-600" /> {a.title}
                       </p>
-                      <span className="text-[10px] text-ledger-slate pl-2 whitespace-nowrap">{a.date}</span>
+                      <span className="text-[10px] text-slate-400 font-medium pl-2 whitespace-nowrap">{a.date}</span>
                     </div>
-                    {a.body && <p className="text-[11px] text-ledger-slate mt-1.5">{a.body}</p>}
+                    {a.body && <p className="text-xs text-slate-500 font-medium mt-2">{a.body}</p>}
                   </li>
                 ))}
               </ul>

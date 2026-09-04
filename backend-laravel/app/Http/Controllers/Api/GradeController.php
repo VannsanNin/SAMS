@@ -9,6 +9,7 @@ use App\Models\GradeScale;
 use App\Models\GradeScaleItem;
 use App\Models\ResultCard;
 use App\Models\Student;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -211,6 +212,13 @@ class GradeController extends Controller
             'semester' => 'required|string',
         ]);
 
+        abort_unless(
+            Student::whereKey($request->student_id)
+                ->where('class_id', $request->class_id)
+                ->exists(),
+            422
+        );
+
         $exams = Exam::where('class_id', $request->class_id)
             ->where('academic_year', $request->academic_year)
             ->where('semester', $request->semester)
@@ -269,6 +277,21 @@ class GradeController extends Controller
                 'status' => 'published',
             ]
         );
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'report_card_published',
+            'subject_type' => ResultCard::class,
+            'subject_id' => $resultCard->id,
+            'properties' => [
+                'student_id' => $request->student_id,
+                'class_id' => $request->class_id,
+                'academic_year' => $request->academic_year,
+                'semester' => $request->semester,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         return response()->json([
             'result_card_id' => $resultCard->id,

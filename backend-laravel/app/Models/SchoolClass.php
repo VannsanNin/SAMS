@@ -12,7 +12,7 @@ class SchoolClass extends Model
     protected $table = 'classes';
 
     protected $fillable = [
-        'class_name', 'teacher_id', 'academic_year',
+        'class_name', 'grade_level', 'education_level', 'teacher_id', 'academic_year',
         'department', 'semester', 'room',
     ];
 

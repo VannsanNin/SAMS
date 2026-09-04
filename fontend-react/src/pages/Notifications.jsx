@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, Search, Check, CheckCheck, Trash2 } from 'lucide-react';
+import { Search, Check, CheckCheck, Trash2 } from 'lucide-react';
 import { apiFetch } from '../api';
 import Pagination from '../components/Pagination';
 

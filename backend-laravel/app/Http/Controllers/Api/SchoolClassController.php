@@ -30,6 +30,8 @@ class SchoolClassController extends Controller
     public function filters()
     {
         return [
+            'grade_levels' => range(1, 12),
+            'education_levels' => ['primary', 'lower_secondary', 'upper_secondary'],
             'departments' => SchoolClass::whereNotNull('department')->where('department', '!=', '')
                 ->distinct()->orderBy('department')->pluck('department'),
             'academic_years' => SchoolClass::whereNotNull('academic_year')->where('academic_year', '!=', '')
@@ -57,7 +59,7 @@ class SchoolClassController extends Controller
             'courses:id,subject_name,course_code',
             'schedules.subject:id,subject_name',
             'schedules.teacher:id,name',
-            'students:id,name,student_id,gender,status,class_id',
+            'students:id,name,student_id,gender,status,class_id,grade_level,education_level',
         ]);
 
         return $schoolClass;
@@ -158,7 +160,7 @@ class SchoolClassController extends Controller
             ->get();
 
         $headers = [
-            'Class Name/Code', 'Department', 'Academic Year', 'Semester', 'Room',
+            'Class Name/Code', 'Grade Level', 'Education Level', 'Department', 'Academic Year', 'Semester', 'Room',
             'Teacher', 'Courses',
         ];
 
@@ -167,7 +169,8 @@ class SchoolClassController extends Controller
             fputcsv($out, $headers);
             foreach ($classes as $c) {
                 fputcsv($out, [
-                    $c->class_name, $c->department, $c->academic_year, $c->semester, $c->room,
+                    $c->class_name, $c->grade_level, $c->education_level, $c->department,
+                    $c->academic_year, $c->semester, $c->room,
                     $c->teacher->name ?? '',
                     $c->courses->pluck('subject_name')->implode('; '),
                 ]);
@@ -180,6 +183,8 @@ class SchoolClassController extends Controller
     {
         return [
             'class_name' => 'required|string',
+            'grade_level' => 'nullable|integer|between:1,12',
+            'education_level' => 'nullable|string|in:primary,lower_secondary,upper_secondary',
             'department' => 'nullable|string',
             'academic_year' => 'required|string',
             'semester' => 'nullable|string',
@@ -201,7 +206,7 @@ class SchoolClassController extends Controller
             });
         }
 
-        foreach (['department', 'academic_year', 'semester'] as $field) {
+        foreach (['grade_level', 'education_level', 'department', 'academic_year', 'semester'] as $field) {
             if ($request->filled($field)) {
                 $query->where($field, $request->input($field));
             }

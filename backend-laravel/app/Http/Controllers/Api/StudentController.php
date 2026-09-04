@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\Concerns\ImportsSpreadsheet;
 use App\Models\Attendance;
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Models\StudentEnrollment;
+use App\Models\Teacher;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 
 class StudentController extends Controller
@@ -16,7 +19,10 @@ class StudentController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->get('per_page', 15);
-        return $this->applyFilters(Student::query(), $request)
+        $query = $this->applyFilters(Student::query(), $request);
+        $this->applyTeacherScope($query, $request->user());
+
+        return $query
             ->with('class')
             ->paginate($perPage);
     }
@@ -24,7 +30,9 @@ class StudentController extends Controller
     public function filters()
     {
         return [
-            'classes' => SchoolClass::orderBy('class_name')->get(['id', 'class_name']),
+            'classes' => $this->classesForUser(request()->user()),
+            'grade_levels' => range(1, 12),
+            'education_levels' => ['primary', 'lower_secondary', 'upper_secondary'],
             'departments' => Student::whereNotNull('department')->where('department', '!=', '')
                 ->distinct()->orderBy('department')->pluck('department'),
             'majors' => Student::whereNotNull('major')->where('major', '!=', '')
@@ -39,7 +47,9 @@ class StudentController extends Controller
 
     public function summary(Request $request)
     {
-        $students = $this->applyFilters(Student::query(), $request)->with('class')->get();
+        $query = $this->applyFilters(Student::query(), $request);
+        $this->applyTeacherScope($query, $request->user());
+        $students = $query->with('class')->get();
 
         $attendance = Attendance::whereIn('student_id', $students->pluck('id'))
             ->selectRaw('student_id')
@@ -97,11 +107,15 @@ class StudentController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate($this->rules());
-        return Student::create($data)->load('class');
+        $student = Student::create($data);
+        $this->syncEnrollment($student);
+
+        return $student->load('class', 'enrollments.schoolClass');
     }
 
     public function show(Student $student)
     {
+        abort_unless($this->canViewStudent(request()->user(), $student), 403);
         $student->load('class');
 
         $stats = Attendance::where('student_id', $student->id)
@@ -149,7 +163,62 @@ class StudentController extends Controller
 
         $data = $request->validate($rules);
         $student->update($data);
-        return $student->load('class');
+        $this->syncEnrollment($student);
+        return $student->load('class', 'enrollments.schoolClass');
+    }
+
+    public function enrollments(Student $student)
+    {
+        return response()->json($student->enrollments()->with('schoolClass')->latest()->get());
+    }
+
+    public function promote(Request $request, Student $student)
+    {
+        $data = $request->validate([
+            'class_id' => 'required|exists:classes,id',
+            'academic_year' => 'required|string|max:50',
+            'grade_level' => 'nullable|integer|between:1,12',
+            'enrollment_date' => 'nullable|date',
+            'status' => 'nullable|in:active,inactive,graduated,suspended',
+        ]);
+
+        $class = SchoolClass::findOrFail($data['class_id']);
+        $grade = $data['grade_level'] ?? $class->grade_level;
+
+        StudentEnrollment::updateOrCreate(
+            ['student_id' => $student->id, 'academic_year' => $data['academic_year']],
+            [
+                'class_id' => $class->id,
+                'grade_level' => $grade,
+                'enrollment_date' => $data['enrollment_date'] ?? now()->toDateString(),
+                'status' => $data['status'] ?? 'active',
+                'promotion_status' => 'promoted',
+            ]
+        );
+
+        $student->update([
+            'class_id' => $class->id,
+            'academic_year' => $data['academic_year'],
+            'grade_level' => $grade,
+            'status' => $data['status'] ?? 'active',
+            'enrollment_date' => $data['enrollment_date'] ?? now()->toDateString(),
+        ]);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'student_promoted',
+            'subject_type' => Student::class,
+            'subject_id' => $student->id,
+            'properties' => [
+                'class_id' => $class->id,
+                'academic_year' => $data['academic_year'],
+                'grade_level' => $grade,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json($student->fresh()->load('class', 'enrollments.schoolClass'));
     }
 
     public function destroy(Student $student)
@@ -187,13 +256,13 @@ class StudentController extends Controller
 
             $record = $this->rowToRecord($row, $header);
 
-            if (empty($record['name']) || empty($record['email'])) {
+            if (empty($record['name'])) {
                 $skipped++;
-                $errors[] = "Row " . ($ri + 1) . ": name and email are required.";
+                $errors[] = "Row " . ($ri + 1) . ": name is required.";
                 continue;
             }
 
-            if (Student::where('email', $record['email'])->exists()) {
+            if (! empty($record['email']) && Student::where('email', $record['email'])->exists()) {
                 $skipped++;
                 continue;
             }
@@ -225,11 +294,11 @@ class StudentController extends Controller
                 'gender' => $record['gender'] ?? 'Male',
                 'dob' => $record['dob'] ?? '2008-01-01',
                 'phone' => $record['phone'] ?? '',
-                'email' => $record['email'],
-                'address' => $record['address'] ?? '',
+                'email' => $record['email'] ?? null,
+                'address' => $record['address'] ?? null,
                 'class_id' => $class->id,
-                'parent_name' => $record['parent_name'] ?? '',
-                'parent_phone' => $record['parent_phone'] ?? '',
+                'parent_name' => $record['parent_name'] ?? null,
+                'parent_phone' => $record['parent_phone'] ?? null,
                 'department' => $record['department'] ?? null,
                 'major' => $record['major'] ?? null,
                 'academic_year' => $record['academic_year'] ?? null,
@@ -252,11 +321,13 @@ class StudentController extends Controller
 
     public function export(Request $request)
     {
-        $students = $this->applyFilters(Student::query(), $request)->with('class')->get();
+        $query = $this->applyFilters(Student::query(), $request);
+        $this->applyTeacherScope($query, $request->user());
+        $students = $query->with('class')->get();
 
         $headers = [
             'Student ID', 'Name', 'Gender', 'Date of Birth', 'Phone', 'Email', 'Address',
-            'Department', 'Major', 'Academic Year', 'Semester', 'Class',
+            'Department', 'Major', 'Academic Year', 'Semester', 'Grade Level', 'Education Level', 'Class',
             'Enrollment Date', 'Status', 'Parent Name', 'Parent Phone',
         ];
 
@@ -266,7 +337,8 @@ class StudentController extends Controller
             foreach ($students as $s) {
                 fputcsv($out, [
                     $s->student_id, $s->name, $s->gender, $s->dob, $s->phone, $s->email, $s->address,
-                    $s->department, $s->major, $s->academic_year, $s->semester, $s->class?->class_name,
+                    $s->department, $s->major, $s->academic_year, $s->semester, $s->grade_level,
+                    $s->education_level, $s->class?->class_name,
                     $s->enrollment_date, $s->status, $s->parent_name, $s->parent_phone,
                 ]);
             }
@@ -281,12 +353,14 @@ class StudentController extends Controller
             'name' => 'required|string',
             'gender' => 'required|string',
             'dob' => 'required|date',
-            'phone' => 'required|string',
-            'email' => 'required|email|unique:students',
-            'address' => 'required|string',
+            'phone' => 'nullable|string',
+            'email' => 'nullable|email|unique:students',
+            'address' => 'nullable|string',
             'class_id' => 'required|exists:classes,id',
-            'parent_name' => 'required|string',
-            'parent_phone' => 'required|string',
+            'grade_level' => 'nullable|integer|between:1,12',
+            'education_level' => 'nullable|string|in:primary,lower_secondary,upper_secondary',
+            'parent_name' => 'nullable|string',
+            'parent_phone' => 'nullable|string',
             'guardian_id' => 'nullable|exists:guardians,id',
             'image' => 'nullable|string',
             'department' => 'nullable|string',
@@ -296,6 +370,72 @@ class StudentController extends Controller
             'enrollment_date' => 'nullable|date',
             'status' => 'nullable|string|in:active,inactive,graduated,suspended',
         ];
+    }
+
+    private function syncEnrollment(Student $student): void
+    {
+        if (! $student->academic_year || ! $student->class_id) {
+            return;
+        }
+
+        StudentEnrollment::updateOrCreate(
+            ['student_id' => $student->id, 'academic_year' => $student->academic_year],
+            [
+                'class_id' => $student->class_id,
+                'grade_level' => $student->grade_level ?? $student->class?->grade_level,
+                'enrollment_date' => $student->enrollment_date,
+                'status' => $student->status ?: 'active',
+            ]
+        );
+    }
+
+    private function applyTeacherScope($query, $user): void
+    {
+        if (! $user || ! $user->isTeacher()) {
+            return;
+        }
+
+        $classIds = $this->classIdsForTeacher($user);
+        $query->whereIn('class_id', $classIds);
+    }
+
+    private function canViewStudent($user, Student $student): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->isTeacher()) {
+            return in_array((int) $student->class_id, $this->classIdsForTeacher($user), true);
+        }
+
+        return $user->isAdmin() || $user->isPrincipal();
+    }
+
+    private function classIdsForTeacher($user): array
+    {
+        if (! $user?->teacher_id) {
+            return [];
+        }
+
+        $teacher = Teacher::find($user->teacher_id);
+        if (! $teacher) {
+            return [];
+        }
+
+        return $teacher->assignedClasses()->pluck('classes.id')
+            ->merge($teacher->classes()->pluck('id'))
+            ->unique()->map(fn ($id) => (int) $id)->all();
+    }
+
+    private function classesForUser($user)
+    {
+        if ($user?->isTeacher()) {
+            return SchoolClass::whereIn('id', $this->classIdsForTeacher($user))
+                ->orderBy('class_name')->get(['id', 'class_name']);
+        }
+
+        return SchoolClass::orderBy('class_name')->get(['id', 'class_name']);
     }
 
     private function applyFilters($query, Request $request)
@@ -311,7 +451,7 @@ class StudentController extends Controller
             });
         }
 
-        foreach (['class_id', 'status', 'department', 'major', 'academic_year', 'semester'] as $field) {
+        foreach (['class_id', 'grade_level', 'education_level', 'status', 'department', 'major', 'academic_year', 'semester'] as $field) {
             if ($request->filled($field)) {
                 $query->where($field, $request->input($field));
             }

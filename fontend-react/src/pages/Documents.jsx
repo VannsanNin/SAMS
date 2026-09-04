@@ -16,12 +16,22 @@ function DocumentForm({ initial, onSave, onClose }) {
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [file, setFile] = useState(null);
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const submit = async (e) => {
     e.preventDefault(); setSaving(true); setError('');
     try {
-      const res = await apiFetch(`${API}/documents`, { method: 'POST', body: JSON.stringify(form) });
+      if (!file) throw new Error('Please select a file.');
+      const body = new FormData();
+      body.append('name', form.title || 'Document');
+      body.append('type', form.category || 'other');
+      if (form.related_type && form.related_id) {
+        body.append('documentable_type', form.related_type);
+        body.append('documentable_id', form.related_id);
+      }
+      body.append('file', file);
+      const res = await apiFetch(`${API}/documents`, { method: 'POST', body });
       if (!res.ok) { const d = await res.json(); throw new Error(d.message || 'Failed'); }
       onSave();
     } catch (err) { setError(err.message); } finally { setSaving(false); }
@@ -49,7 +59,7 @@ function DocumentForm({ initial, onSave, onClose }) {
           </select>
         </Field>
       </div>
-      <Field label="File URL"><input className={inputCls} value={form.file_url || ''} onChange={set('file_url')} placeholder="https://..." /></Field>
+      <Field label="File" required><input className={inputCls} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" onChange={e => setFile(e.target.files?.[0] || null)} required /></Field>
       <Field label="Description"><textarea className={inputCls} rows={2} value={form.description || ''} onChange={set('description')} /></Field>
       <div className="flex justify-end gap-3 pt-2">
         <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl border text-xs font-semibold">Cancel</button>

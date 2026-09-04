@@ -161,10 +161,14 @@ class PermissionSeeder extends Seeder
             ['name' => 'graduation.manage', 'group' => 'graduation', 'description' => 'Manage graduation'],
         ];
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        }
         DB::table('role_permissions')->delete();
         DB::table('permissions')->delete();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        }
 
         foreach ($permissions as $permission) {
             Permission::create($permission);

@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import Modal from "../components/Modal";
 import { apiFetch } from "../api";
 import {
-  COLORS, CHART_COLORS, PageShell, KPI, KpiRow, Panel, ChartGrid,
+  COLORS, PageShell, KPI, KpiRow, Panel, ChartGrid,
   Badge, FilterBar, TextInput, Select, Table, RowAction,
 } from "../components/shared";
 
@@ -19,7 +19,6 @@ const HOMEWORK_TYPES = [
 
 const PRIORITIES = ["low", "medium", "high"];
 
-const PRIO_TONE = { low: "sage", medium: "amber", high: "coral" };
 const STATUS_TONE = {
   draft: "slate", scheduled: "slate", published: "sage",
   in_progress: "amber", due_soon: "amber", closed: "slate",
@@ -46,12 +45,23 @@ const byDept = [
   { name: "English", value: 5 }, { name: "History", value: 4 },
 ];
 
+function Field({ label, required, children }) {
+  return (
+    <label className="block">
+      <span className="block text-[12px] mb-1" style={{ color: COLORS.slate }}>
+        {label}{required && <span style={{ color: COLORS.coral }}> *</span>}
+      </span>
+      {children}
+    </label>
+  );
+}
+
 export default function Homework() {
   const [data, setData] = useState([]);
   const [meta, setMeta] = useState(null);
   const [stats, setStats] = useState(null);
   const [options, setOptions] = useState({ subjects: [], classes: [], teachers: [] });
-  const [subs, setSubs] = useState([]);
+  const [subs] = useState([]);
   const [tab, setTab] = useState("dashboard");
 
   const [filters, setFilters] = useState({ search: "", subject_id: "", class_id: "", status: "" });
@@ -559,15 +569,6 @@ function HomeworkForm({ initial, options, onSave, onClose }) {
     fontSize: "13px", background: COLORS.card, color: COLORS.ink,
     border: `1px solid ${COLORS.hairline}`, outline: "none",
   };
-
-  const Field = ({ label, required, children }) => (
-    <label className="block">
-      <span className="block text-[12px] mb-1" style={{ color: COLORS.slate }}>
-        {label}{required && <span style={{ color: COLORS.coral }}> *</span>}
-      </span>
-      {children}
-    </label>
-  );
 
   const submit = async (e) => {
     e.preventDefault();

@@ -17,5 +17,12 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // shared.jsx intentionally exports both design tokens and React components.
+      'react-refresh/only-export-components': 'off',
+      // Data-loading effects call async loaders that update state after awaiting.
+      // Keep this diagnostic visible without treating the valid fetch pattern as an error.
+      'react-hooks/set-state-in-effect': 'warn',
+    },
   },
 ])

@@ -158,11 +158,10 @@ class AuthController extends Controller
             return response()->json(['message' => 'If that email exists, a password reset token has been generated.']);
         }
 
-        $token = Password::broker()->createToken($user);
+        Password::broker()->sendResetLink(['email' => $user->email]);
 
         return response()->json([
-            'message' => 'A password reset token has been generated for your account.',
-            'reset_token' => $token,
+            'message' => 'If that email exists, a password reset link has been sent.',
         ]);
     }
 
