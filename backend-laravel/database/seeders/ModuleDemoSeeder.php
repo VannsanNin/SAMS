@@ -89,6 +89,7 @@ class ModuleDemoSeeder extends Seeder
                     'type' => $type,
                     'subject_id' => $subject->id,
                     'class_id' => $class->id,
+                    'grade_level' => $class->grade_level ?? null,
                     'date' => now()->subDays(rand(1, 30))->toDateString(),
                     'total_marks' => 100,
                     'passing_marks' => 50,

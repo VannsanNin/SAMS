@@ -133,6 +133,52 @@ class GradeController extends Controller
             ->orderBy('name')
             ->get();
 
+        $results = $this->buildResults($exams, $students);
+
+        return response()->json([
+            'class_id' => $classId,
+            'grade_level' => $students->first()?->class?->grade_level,
+            'results' => $results,
+            'stats' => $this->buildStats($results),
+        ]);
+    }
+
+    public function gradeLevelGrades(Request $request, int $gradeLevel)
+    {
+        // Optional subject filter across grade-level exams
+        $exams = Exam::where('grade_level', $gradeLevel)
+            ->where('status', 'completed')
+            ->with('subject')
+            ->get();
+
+        if ($request->has('subject_id')) {
+            $exams = $exams->where('subject_id', (int) $request->subject_id);
+        }
+
+        $students = Student::where('grade_level', $gradeLevel)
+            ->with('class')
+            ->orderBy('name')
+            ->get();
+
+        $results = $this->buildResults($exams, $students);
+
+        // Section breakdown
+        $sections = [];
+        foreach ($students as $student) {
+            $section = $student->class?->class_name ?? '—';
+            $sections[$section] = ($sections[$section] ?? 0) + 1;
+        }
+
+        return response()->json([
+            'grade_level' => $gradeLevel,
+            'sections' => $sections,
+            'results' => $results,
+            'stats' => $this->buildStats($results),
+        ]);
+    }
+
+    private function buildResults($exams, $students)
+    {
         $results = $students->map(function ($student) use ($exams) {
             $totalObtained = 0;
             $totalMarks = 0;
@@ -173,6 +219,7 @@ class GradeController extends Controller
                 'student_id' => $student->id,
                 'student_name' => $student->name,
                 'student_code' => $student->student_id,
+                'section' => $student->class?->class_name ?? '—',
                 'subjects' => $subjectGrades,
                 'total_marks' => $totalMarks,
                 'obtained_marks' => $totalObtained,
@@ -188,17 +235,18 @@ class GradeController extends Controller
             $result['rank'] = $index + 1;
         }
 
-        return response()->json([
-            'class_id' => $classId,
-            'results' => $results,
-            'stats' => [
-                'total_students' => $results->count(),
-                'average_gpa' => $results->count() > 0 ? round($results->avg('gpa'), 2) : 0,
-                'average_percentage' => $results->count() > 0 ? round($results->avg('percentage'), 1) : 0,
-                'pass_count' => $results->filter(fn ($r) => $r['percentage'] >= 50)->count(),
-                'fail_count' => $results->filter(fn ($r) => $r['percentage'] < 50)->count(),
-            ],
-        ]);
+        return $results;
+    }
+
+    private function buildStats($results)
+    {
+        return [
+            'total_students' => $results->count(),
+            'average_gpa' => $results->count() > 0 ? round($results->avg('gpa'), 2) : 0,
+            'average_percentage' => $results->count() > 0 ? round($results->avg('percentage'), 1) : 0,
+            'pass_count' => $results->filter(fn ($r) => $r['percentage'] >= 50)->count(),
+            'fail_count' => $results->filter(fn ($r) => $r['percentage'] < 50)->count(),
+        ];
     }
 
     // ─── Report Card ────────────────────────────────────────────────────────
@@ -219,20 +267,112 @@ class GradeController extends Controller
             422
         );
 
-        $exams = Exam::where('class_id', $request->class_id)
-            ->where('academic_year', $request->academic_year)
-            ->where('semester', $request->semester)
+        $student = Student::with('class')->find($request->student_id);
+        $gradeLevel = $student->class?->grade_level ?? $student->grade_level;
+
+        $exams = $this->examsForReport($request->class_id, $gradeLevel, $request->academic_year, $request->semester);
+
+        $report = $this->generateSingleReportCard(
+            $student,
+            $exams,
+            $request->academic_year,
+            $request->semester,
+            $request->user(),
+            $request
+        );
+
+        return response()->json(array_merge([
+            'student' => $report['student'],
+            'academic_year' => $request->academic_year,
+            'semester' => $request->semester,
+            'subjects' => $report['subjects'],
+            'summary' => $report['summary'],
+        ], ['result_card_id' => $report['result_card_id']]));
+    }
+
+    public function generateGradeLevelReportCards(Request $request, int $gradeLevel)
+    {
+        $data = $request->validate([
+            'academic_year' => 'required|string',
+            'semester' => 'required|string',
+        ]);
+
+        $students = Student::where('grade_level', $gradeLevel)
+            ->with('class')
+            ->orderBy('name')
+            ->get();
+
+        if ($students->isEmpty()) {
+            return response()->json(['message' => 'No students in this grade level.'], 422);
+        }
+
+        $exams = Exam::where('grade_level', $gradeLevel)
+            ->where('academic_year', $data['academic_year'])
+            ->where('semester', $data['semester'])
             ->where('status', 'completed')
             ->with('subject')
             ->get();
 
+        $generated = [];
+        foreach ($students as $student) {
+            $generated[] = $this->generateSingleReportCard(
+                $student,
+                $exams,
+                $data['academic_year'],
+                $data['semester'],
+                $request->user(),
+                $request
+            );
+        }
+
+        return response()->json([
+            'grade_level' => $gradeLevel,
+            'academic_year' => $data['academic_year'],
+            'semester' => $data['semester'],
+            'generated_count' => count($generated),
+            'result_cards' => $generated,
+        ]);
+    }
+
+    // Auto-generate report cards when an exam in a grade level is completed.
+    public function autoGenerateReportCardsForExam(Exam $exam, ?\App\Models\User $user, ?Request $request = null)
+    {
+        if (! $exam->grade_level || $exam->status !== 'completed') {
+            return null;
+        }
+
+        $academicYear = $exam->academic_year ?: '2025-2026';
+        $semester = $exam->semester ?: 'Semester 1';
+
+        $fakeRequest = $request ?? Request::create('/api/internal/report-cards', 'POST', [
+            'academic_year' => $academicYear,
+            'semester' => $semester,
+        ]);
+
+        return $this->generateGradeLevelReportCards($fakeRequest, $exam->grade_level);
+    }
+
+    private function examsForReport(?int $classId, ?int $gradeLevel, string $academicYear, string $semester)
+    {
+        return Exam::where(function ($q) use ($classId, $gradeLevel) {
+            $q->where('class_id', $classId)->orWhere('grade_level', $gradeLevel);
+        })
+            ->where('academic_year', $academicYear)
+            ->where('semester', $semester)
+            ->where('status', 'completed')
+            ->with('subject')
+            ->get();
+    }
+
+    private function generateSingleReportCard(Student $student, $exams, string $academicYear, string $semester, ?\App\Models\User $user, ?Request $request = null)
+    {
         $totalObtained = 0;
         $totalMarks = 0;
         $subjectResults = [];
 
         foreach ($exams as $exam) {
             $mark = ExamMark::where('exam_id', $exam->id)
-                ->where('student_id', $request->student_id)
+                ->where('student_id', $student->id)
                 ->first();
 
             $obtained = $mark?->marks_obtained ?? 0;
@@ -249,6 +389,7 @@ class GradeController extends Controller
                 'subject_id' => $exam->subject_id,
                 'subject_name' => $exam->subject?->subject_name,
                 'course_code' => $exam->subject?->course_code,
+                'exam_name' => $exam->name,
                 'total_marks' => $exam->total_marks,
                 'obtained_marks' => $obtained,
                 'percentage' => $percentage,
@@ -263,10 +404,10 @@ class GradeController extends Controller
 
         $resultCard = ResultCard::updateOrCreate(
             [
-                'student_id' => $request->student_id,
-                'class_id' => $request->class_id,
-                'academic_year' => $request->academic_year,
-                'semester' => $request->semester,
+                'student_id' => $student->id,
+                'class_id' => $student->class_id,
+                'academic_year' => $academicYear,
+                'semester' => $semester,
             ],
             [
                 'total_marks' => $totalMarks,
@@ -279,25 +420,24 @@ class GradeController extends Controller
         );
 
         ActivityLog::create([
-            'user_id' => $request->user()->id,
+            'user_id' => $user?->id ?? 1,
             'action' => 'report_card_published',
             'subject_type' => ResultCard::class,
             'subject_id' => $resultCard->id,
             'properties' => [
-                'student_id' => $request->student_id,
-                'class_id' => $request->class_id,
-                'academic_year' => $request->academic_year,
-                'semester' => $request->semester,
+                'student_id' => $student->id,
+                'class_id' => $student->class_id,
+                'grade_level' => $student->class?->grade_level,
+                'academic_year' => $academicYear,
+                'semester' => $semester,
             ],
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'ip_address' => $request?->ip() ?? request()->ip(),
+            'user_agent' => $request?->userAgent() ?? request()->userAgent(),
         ]);
 
-        return response()->json([
+        return [
             'result_card_id' => $resultCard->id,
-            'student' => Student::with('class')->find($request->student_id),
-            'academic_year' => $request->academic_year,
-            'semester' => $request->semester,
+            'student' => Student::with('class')->find($student->id),
             'subjects' => $subjectResults,
             'summary' => [
                 'total_marks' => $totalMarks,
@@ -307,7 +447,7 @@ class GradeController extends Controller
                 'grade' => $overallGrade['grade'],
                 'status' => 'published',
             ],
-        ]);
+        ];
     }
 
     public function resultCards(Request $request)
@@ -319,6 +459,9 @@ class GradeController extends Controller
         }
         if ($request->has('class_id')) {
             $query->where('class_id', $request->class_id);
+        }
+        if ($request->has('grade_level')) {
+            $query->whereHas('student', fn ($q) => $q->where('grade_level', $request->grade_level));
         }
         if ($request->has('academic_year')) {
             $query->where('academic_year', $request->academic_year);

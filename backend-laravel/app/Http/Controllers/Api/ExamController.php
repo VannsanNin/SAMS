@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamMark;
+use App\Models\Student;
 use App\Models\Teacher;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class ExamController extends Controller
 {
@@ -21,6 +21,9 @@ class ExamController extends Controller
         }
         if ($request->has('class_id')) {
             $query->where('class_id', $request->class_id);
+        }
+        if ($request->has('grade_level')) {
+            $query->where('grade_level', $request->grade_level);
         }
         if ($request->has('type')) {
             $query->where('type', $request->type);
@@ -52,7 +55,8 @@ class ExamController extends Controller
             'name' => 'required|string|max:255',
             'type' => 'required|in:quiz,midterm,final,monthly,practical,oral',
             'subject_id' => 'required|exists:subjects,id',
-            'class_id' => 'required|exists:classes,id',
+            'grade_level' => 'required|integer|min:1|max:12',
+            'class_id' => 'nullable|exists:classes,id',
             'date' => 'required|date',
             'time_start' => 'nullable|date_format:H:i',
             'time_end' => 'nullable|date_format:H:i|after_or_equal:time_start',
@@ -65,7 +69,7 @@ class ExamController extends Controller
         ]);
 
         $exam = Exam::create($request->only([
-            'name', 'type', 'subject_id', 'class_id', 'date',
+            'name', 'type', 'subject_id', 'grade_level', 'class_id', 'date',
             'time_start', 'time_end', 'total_marks', 'passing_marks',
             'room', 'description', 'academic_year', 'semester',
         ]));
@@ -89,7 +93,8 @@ class ExamController extends Controller
             'name' => 'sometimes|string|max:255',
             'type' => 'sometimes|in:quiz,midterm,final,monthly,practical,oral',
             'subject_id' => 'sometimes|exists:subjects,id',
-            'class_id' => 'sometimes|exists:classes,id',
+            'grade_level' => 'sometimes|integer|min:1|max:12',
+            'class_id' => 'nullable|exists:classes,id',
             'date' => 'sometimes|date',
             'time_start' => 'nullable|date_format:H:i',
             'time_end' => 'nullable|date_format:H:i',
@@ -102,7 +107,21 @@ class ExamController extends Controller
 
         $exam->update($data);
 
-        return response()->json($exam->load(['subject', 'schoolClass']));
+        // Auto-generate report cards when a grade-level exam is marked completed
+        $reportInfo = null;
+        if (($data['status'] ?? null) === 'completed' && $exam->grade_level) {
+            $gradeController = app(GradeController::class);
+            $reportResponse = $gradeController->autoGenerateReportCardsForExam($exam, $request->user(), $request);
+            if ($reportResponse) {
+                $reportBody = $reportResponse->getData();
+                $reportInfo = $reportBody->generated_count ?? null;
+            }
+        }
+
+        return response()->json(array_merge(
+            $exam->load(['subject', 'schoolClass'])->toArray(),
+            ['report_cards_generated' => $reportInfo]
+        ));
     }
 
     public function destroy(Exam $exam)
@@ -138,13 +157,25 @@ class ExamController extends Controller
             'marks.*.is_excused' => 'nullable|boolean',
         ]);
 
+        // For grade-level exams, validate students belong to the grade_level (any section).
+        // Legacy exams with class_id only fall back to the section check.
         foreach ($request->marks as $markData) {
-            abort_unless(
-                \App\Models\Student::whereKey($markData['student_id'])
-                    ->where('class_id', $exam->class_id)
-                    ->exists(),
-                422
-            );
+            if ($exam->grade_level) {
+                abort_unless(
+                    Student::whereKey($markData['student_id'])
+                        ->where('grade_level', $exam->grade_level)
+                        ->exists(),
+                    422,
+                    'Student does not belong to grade level ' . $exam->grade_level
+                );
+            } else {
+                abort_unless(
+                    Student::whereKey($markData['student_id'])
+                        ->where('class_id', $exam->class_id)
+                        ->exists(),
+                    422
+                );
+            }
 
             ExamMark::updateOrCreate(
                 ['exam_id' => $exam->id, 'student_id' => $markData['student_id']],
@@ -175,11 +206,17 @@ class ExamController extends Controller
             return false;
         }
 
-        return \App\Models\Teacher::whereKey($user->teacher_id)
-            ->where(function ($query) use ($exam, $user) {
-                $query->whereHas('assignedClasses', fn ($q) => $q->whereKey($exam->class_id))
-                    ->orWhereHas('classes', fn ($q) => $q->whereKey($exam->class_id))
-                    ->orWhereHas('subjects', fn ($q) => $q->whereKey($exam->subject_id));
+        // Teacher can manage if they teach any class in the exam's grade level
+        return Teacher::whereKey($user->teacher_id)
+            ->where(function ($query) use ($exam) {
+                if ($exam->grade_level) {
+                    $query->whereHas('assignedClasses', fn ($q) => $q->where('grade_level', $exam->grade_level))
+                        ->orWhereHas('classes', fn ($q) => $q->where('grade_level', $exam->grade_level));
+                } else {
+                    $query->whereHas('assignedClasses', fn ($q) => $q->whereKey($exam->class_id))
+                        ->orWhereHas('classes', fn ($q) => $q->whereKey($exam->class_id));
+                }
+                $query->orWhereHas('subjects', fn ($q) => $q->whereKey($exam->subject_id));
             })
             ->exists();
     }
@@ -214,6 +251,7 @@ class ExamController extends Controller
                     'student_id' => $mark->student_id,
                     'student_name' => $mark->student?->name,
                     'student_code' => $mark->student?->student_id,
+                    'section' => $mark->student?->class?->class_name,
                     'marks_obtained' => $mark->marks_obtained,
                     'total_marks' => $mark->exam->total_marks,
                     'percentage' => $mark->exam->total_marks > 0
@@ -257,9 +295,14 @@ class ExamController extends Controller
 
         return Teacher::whereKey($user->teacher_id)
             ->where(function ($query) use ($exam) {
-                $query->whereHas('assignedClasses', fn ($q) => $q->whereKey($exam->class_id))
-                    ->orWhereHas('classes', fn ($q) => $q->whereKey($exam->class_id))
-                    ->orWhereHas('subjects', fn ($q) => $q->whereKey($exam->subject_id));
+                if ($exam->grade_level) {
+                    $query->whereHas('assignedClasses', fn ($q) => $q->where('grade_level', $exam->grade_level))
+                        ->orWhereHas('classes', fn ($q) => $q->where('grade_level', $exam->grade_level));
+                } else {
+                    $query->whereHas('assignedClasses', fn ($q) => $q->whereKey($exam->class_id))
+                        ->orWhereHas('classes', fn ($q) => $q->whereKey($exam->class_id));
+                }
+                $query->orWhereHas('subjects', fn ($q) => $q->whereKey($exam->subject_id));
             })->exists();
     }
 
@@ -279,8 +322,13 @@ class ExamController extends Controller
             ->merge($teacher->classes()->pluck('id'))->unique();
         $subjectIds = $teacher->subjects()->pluck('subjects.id');
 
-        $query->where(function ($q) use ($classIds, $subjectIds) {
-            $q->whereIn('class_id', $classIds)->orWhereIn('subject_id', $subjectIds);
+        // Get grade levels the teacher has access to
+        $gradeLevels = SchoolClass::whereIn('id', $classIds)->pluck('grade_level')->unique()->filter();
+
+        $query->where(function ($q) use ($classIds, $gradeLevels, $subjectIds) {
+            $q->whereIn('grade_level', $gradeLevels)
+                ->orWhereIn('class_id', $classIds)
+                ->orWhereIn('subject_id', $subjectIds);
         });
     }
 }

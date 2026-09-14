@@ -346,6 +346,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('exams/{exam}/results', [ExamController::class, 'classResults']);
 
         // ── Grades ────────────────────────────────────────────────────────
+        Route::get('grades/grade-level/{gradeLevel}', [GradeController::class, 'gradeLevelGrades']);
+        Route::post('grades/grade-level/{gradeLevel}/report-cards', [GradeController::class, 'generateGradeLevelReportCards']);
         Route::get('grades/class/{classId}', [GradeController::class, 'classGrades']);
         Route::get('grades/rankings/{classId}', [GradeController::class, 'classRankings']);
         Route::post('grades/report-card', [GradeController::class, 'generateReportCard']);

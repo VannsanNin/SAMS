@@ -11,9 +11,10 @@ import {
   Legend,
 } from 'recharts';
 import { apiFetch } from '../api';
+import { exportCSV, exportExcel, exportPDF, exportWord } from '../utils/export';
 import {
   BarChart3, BookOpen, Building2, TriangleAlert, TrendingUp,
-  CheckCircle2, XCircle, Clock, CalendarCheck, UserRound, RefreshCw, School
+  CheckCircle2, XCircle, Clock, CalendarCheck, UserRound, RefreshCw, School, Download, FileSpreadsheet, FileText, File as FileIcon, Sheet
 } from 'lucide-react';
 
 const API = '/api';
@@ -271,6 +272,7 @@ export default function Reports() {
   const [studentReport, setStudentReport] = useState(null);
   const [studentLoading, setStudentLoading] = useState(false);
   const [error, setError] = useState('');
+  const [exportOpen, setExportOpen] = useState(false);
 
   const load = useCallback(() => {
     const params = new URLSearchParams();
@@ -368,6 +370,112 @@ export default function Reports() {
       </select>
   );
 
+  const buildExportSections = () => {
+    const sections = [];
+    if (!data) return sections;
+
+    if (summary) {
+      sections.push({
+        title: 'Summary',
+        columns: [{ key: 'label', label: 'Metric' }, { key: 'value', label: 'Value' }],
+        rows: summaryCards.map((c) => ({ label: c.label, value: c.value + (c.suffix ?? '') })),
+      });
+    }
+
+    sections.push({
+      title: 'Class Breakdown',
+      columns: [
+        { key: 'name', label: 'Class' },
+        { key: 'total_students', label: 'Students' },
+        { key: 'present', label: 'Present' },
+        { key: 'absent', label: 'Absent' },
+        { key: 'late', label: 'Late' },
+        { key: 'attendance_rate', label: 'Rate %' },
+      ],
+      rows: data.by_class || [],
+    });
+
+    sections.push({
+      title: 'Course Breakdown',
+      columns: [
+        { key: 'name', label: 'Course' },
+        { key: 'present', label: 'Present' },
+        { key: 'absent', label: 'Absent' },
+        { key: 'late', label: 'Late' },
+        { key: 'attendance_rate', label: 'Rate %' },
+      ],
+      rows: data.by_course || [],
+    });
+
+    sections.push({
+      title: 'Department Performance',
+      columns: [
+        { key: 'name', label: 'Department' },
+        { key: 'present', label: 'Present' },
+        { key: 'absent', label: 'Absent' },
+        { key: 'late', label: 'Late' },
+        { key: 'attendance_rate', label: 'Rate %' },
+      ],
+      rows: data.by_department || [],
+    });
+
+    if (studentReport?.courses?.length) {
+      sections.push({
+        title: `Student Report — ${studentReport.student?.name ?? studentReport.student?.id}`,
+        columns: [
+          { key: 'name', label: 'Course' },
+          { key: 'present', label: 'Present' },
+          { key: 'absent', label: 'Absent' },
+          { key: 'late', label: 'Late' },
+          { key: 'excused', label: 'Excused' },
+          { key: 'attendance_rate', label: 'Rate %' },
+        ],
+        rows: studentReport.courses,
+      });
+    }
+
+    if (data.low_attendance?.length) {
+      sections.push({
+        title: `At-Risk Students (below ${filters.threshold}%)`,
+        columns: [
+          { key: 'name', label: 'Student' },
+          { key: 'class', label: 'Class' },
+          { key: 'total', label: 'Total Sessions' },
+          { key: 'absent', label: 'Absent' },
+          { key: 'late', label: 'Late' },
+          { key: 'attendance_rate', label: 'Attendance %' },
+        ],
+        rows: data.low_attendance,
+      });
+    }
+
+    return sections;
+  };
+
+  const handleExport = (format) => {
+    setExportOpen(false);
+    const filename = 'Attendance_Report';
+    const heading = 'SAMS — Attendance Analytics Report';
+    const subheading = [
+      filters.class_id ? `Class ${options.classes.find((c) => String(c.id) === String(filters.class_id))?.class_name}` : null,
+      filters.department ? `Dept: ${filters.department}` : null,
+      filters.date_from || 'All dates',
+      filters.date_from && filters.date_to ? `to ${filters.date_to}` : null,
+    ].filter(Boolean).join(' · ') || 'All date range';
+
+    if (format === 'csv') exportCSV(filename, buildExportSections());
+    if (format === 'excel') exportExcel(filename, buildExportSections());
+    if (format === 'pdf') exportPDF(filename, heading, subheading, buildExportSections());
+    if (format === 'word') exportWord(filename, heading, subheading, buildExportSections());
+  };
+
+  const EXPORT_ITEMS = [
+    { id: 'excel', label: 'Excel (.xlsx)', icon: FileSpreadsheet },
+    { id: 'pdf', label: 'PDF Document', icon: FileText },
+    { id: 'word', label: 'Word (.doc)', icon: FileIcon },
+    { id: 'csv', label: 'CSV File', icon: Sheet },
+  ];
+
   if (error) {
     return (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl p-6 text-xs font-semibold">
@@ -386,12 +494,42 @@ export default function Reports() {
             </h1>
             <p className="text-xs text-slate-500 font-medium mt-0.5">High-level insights across students, courses, classes, and departments</p>
           </div>
-          <button
-              onClick={() => load()}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition"
-          >
-            <RefreshCw size={15} /> Refresh Data
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button
+                  onClick={() => setExportOpen((o) => !o)}
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold shadow-xs transition"
+              >
+                <Download size={15} /> Export
+                <span className="text-[9px] ml-0.5">▾</span>
+              </button>
+              {exportOpen && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setExportOpen(false)} />
+                    <div className="absolute right-0 top-full mt-2 z-30 w-48 bg-white rounded-xl border border-slate-200/80 shadow-xl overflow-hidden py-1">
+                      <p className="px-3.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border-b border-slate-100">Export report as</p>
+                      {EXPORT_ITEMS.map((item) => (
+                          <button
+                              key={item.id}
+                              onClick={() => handleExport(item.id)}
+                              disabled={!data}
+                              className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-700 transition"
+                          >
+                            <item.icon size={15} className="text-slate-400" />
+                            {item.label}
+                          </button>
+                      ))}
+                    </div>
+                  </>
+              )}
+            </div>
+            <button
+                onClick={() => load()}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition"
+            >
+              <RefreshCw size={15} /> Refresh Data
+            </button>
+          </div>
         </div>
 
         {/* Filter Toolbar */}

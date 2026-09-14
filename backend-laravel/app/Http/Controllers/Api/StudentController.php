@@ -107,6 +107,7 @@ class StudentController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate($this->rules());
+        $data['grade_level'] = $data['grade_level'] ?? \App\Models\SchoolClass::find($data['class_id'])?->grade_level;
         $student = Student::create($data);
         $this->syncEnrollment($student);
 
